@@ -122,7 +122,7 @@ The server will be available at the configured HOST and PORT from your `.env` (d
 ### 5. Verify It Works
 Test the connection using the web-based test client:
 ```bash
-# In a new terminal (make sure RealtimeSwitch server is running first)
+# In a new terminal (make sure RealtimeSwitch server is running first and you are in repo root before running below cmd)
 cd orchestrator
 npm run test:client
 ```
