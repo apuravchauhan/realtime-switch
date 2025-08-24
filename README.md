@@ -467,7 +467,7 @@ npm run dev
 
 We are looking for early adopters and developers who can help us test this API. If interested, please join our early adopters program at [realtimeswitch.com](https://realtimeswitch.com).
 
-Coming soon.
+Detailed docs coming soon.
 
 ## License
 
@@ -479,5 +479,3 @@ MIT License - see [LICENSE](LICENSE) for details.
 - **Indu Chauhan**
 
 ---
-
-**Note**: This project is under active development. APIs may change before v1.0 release.
