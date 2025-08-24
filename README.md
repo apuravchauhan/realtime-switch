@@ -122,7 +122,8 @@ The server will be available at the configured HOST and PORT from your `.env` (d
 ### 5. Verify It Works
 Test the connection using the web-based test client:
 ```bash
-# In a new terminal (make sure RealtimeSwitch server is running first and you are in repo root before running below cmd)
+# In a new terminal (make sure RealtimeSwitch server is running first And
+# you are in repo root before running below cmd)
 cd orchestrator
 npm run test:client
 ```
@@ -130,7 +131,8 @@ npm run test:client
 This will:
 - Start a test web server (reads your `.env` configuration)
 - Automatically open your browser to the test client
-- Connect to RealtimeSwitch and test voice functionality
+- Click Start and allow cam and mic permissions and start talking.
+- Explore the index.html code inside orchestrator package to see realtime ws api usage
 
 **Alternative CLI Test:**
 ```bash
