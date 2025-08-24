@@ -132,7 +132,7 @@ This will:
 - Start a test web server (reads your `.env` configuration)
 - Automatically open your browser to the test client
 - Click Start and allow cam and mic permissions and start talking.
-- Explore the index.html code inside orchestrator package to see realtime ws api usage
+- Explore the index.html code inside orchestrator/test package to see realtime ws api usage
 
 **Alternative CLI Test:**
 ```bash
