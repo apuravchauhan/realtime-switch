@@ -1,0 +1,39 @@
+{
+  "name": "@realtime-switch/providers-gemini",
+  "version": "1.0.0",
+  "description": "Gemini Live API event manager for AI conversation providers",
+  "main": ".dist/index.js",
+  "types": ".dist/index.d.ts",
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsc --watch",
+    "clean": "rm -rf .dist",
+    "test:direct": "npx ts-node test/GeminiDirectEventsBaseline.ts",
+    "test:sdk": "npx ts-node test/GeminiEventsBaseline.ts",
+    "test:function-call": "npx ts-node test/GeminiFunctionCallBaseline.ts"
+  },
+  "keywords": [
+    "ai",
+    "conversation",
+    "events",
+    "gemini",
+    "google",
+    "live-api",
+    "voice ai"
+  ],
+  "author": "Apurav Chauhan and Indu Chauhan",
+  "license": "MIT",
+  "dependencies": {
+    "@realtime-switch/core": "file:../../../core",
+    "@realtime-switch/checkpoint": "file:../../checkpoint",
+    "@google/genai": "^1.12.0",
+    "ws": "^8.18.3"
+  },
+  "devDependencies": {
+    "@types/node": "^20.19.9",
+    "@types/ws": "^8.18.1",
+    "dotenv": "^16.4.5",
+    "ts-node": "^10.9.0",
+    "typescript": "^5.8.3"
+  }
+}

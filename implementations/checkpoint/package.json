@@ -1,0 +1,28 @@
+{
+  "name": "@realtime-switch/checkpoint",
+  "version": "1.0.0",
+  "description": "Universal checkpoint implementation for event persistence",
+  "main": ".dist/index.js",
+  "types": ".dist/index.d.ts",
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsc --watch",
+    "clean": "rm -rf .dist"
+  },
+  "keywords": [
+    "ai",
+    "checkpoint",
+    "events",
+    "persistence",
+    "voice ai"
+  ],
+  "author": "Apurav Chauhan and Indu Chauhan",
+  "license": "MIT",
+  "dependencies": {
+    "@realtime-switch/core": "file:../../core"
+  },
+  "devDependencies": {
+    "@types/node": "^20.19.9",
+    "typescript": "^5.8.3"
+  }
+}

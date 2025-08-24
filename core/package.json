@@ -1,0 +1,22 @@
+{
+  "name": "@realtime-switch/core",
+  "version": "1.0.0",
+  "description": "Core types and event management for AI conversation providers",
+  "main": ".dist/index.js",
+  "types": ".dist/index.d.ts",
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsc --watch",
+    "clean": "rm -rf .dist"
+  },
+  "keywords": ["ai", "conversation", "events", "providers", "voice ai"],
+  "author": "Apurav Chauhan and Indu Chauhan",
+  "license": "MIT",
+  "dependencies": {
+    "dotenv": "^16.4.5"
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "typescript": "^5.8.3"
+  }
+}

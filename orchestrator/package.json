@@ -1,0 +1,41 @@
+{
+  "name": "@realtime-switch/orchestrator",
+  "version": "1.0.0",
+  "description": "Orchestrator for AI voice conversation system",
+  "main": ".dist/index.js",
+  "types": ".dist/index.d.ts",
+  "scripts": {
+    "build": "tsc",
+    "start": "node .dist/Server.js",
+    "dev": "nodemon --watch src --ext ts,js --exec \"ts-node src/Server.ts\"",
+    "clean": "rm -rf .dist",
+    "test:client": "node test-server.js",
+    "test:pipeline-function-call": "npx ts-node test/pipeline-tests/PipelineTestOAIGeminiFunctionCall.ts",
+    "test:pipeline-2-function-calls": "npx ts-node test/pipeline-tests/PipelineTestOAIGemini2FunctionCalls.ts",
+    "test:pipeline-gemini-oai-2-function-calls": "npx ts-node test/pipeline-tests/PipelineTestGeminiOAI2FunctionCalls.ts"
+  },
+  "keywords": ["ai", "conversation", "orchestrator", "voice", "websocket", "voice ai"],
+  "author": "Apurav Chauhan and Indu Chauhan",
+  "license": "MIT",
+  "dependencies": {
+    "@realtime-switch/core": "file:../core",
+    "@realtime-switch/switch": "file:../implementations/switch",
+    "@realtime-switch/transformers": "file:../implementations/transformers",
+    "@realtime-switch/extractors": "file:../implementations/extractors",
+    "@realtime-switch/providers-oai": "file:../implementations/providers/oai",
+    "@realtime-switch/providers-gemini": "file:../implementations/providers/gemini",
+    "@realtime-switch/checkpoint": "file:../implementations/checkpoint",
+    "@realtime-switch/accounts": "file:../implementations/accounts",
+    "uWebSockets.js": "github:uNetworking/uWebSockets.js#v20.52.0",
+    "ws": "^8.18.0",
+    "firebase-admin": "^12.0.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "@types/ws": "^8.18.1",
+    "nodemon": "^3.1.10",
+    "ts-node": "^10.9.0",
+    "typescript": "^5.8.3",
+    "dotenv": "^16.0.0"
+  }
+}

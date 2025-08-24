@@ -1,0 +1,24 @@
+{
+  "name": "@realtime-switch/switch",
+  "version": "1.0.0",
+  "description": "Switch implementations for AI provider switching strategies",
+  "main": ".dist/index.js",
+  "types": ".dist/index.d.ts",
+  "scripts": {
+    "build": "tsc",
+    "test": "vitest",
+    "coverage": "vitest --coverage",
+    "clean": "rm -rf .dist"
+  },
+  "keywords": ["ai", "switch", "providers", "performance", "voice ai"],
+  "author": "Apurav Chauhan and Indu Chauhan",
+  "license": "MIT",
+  "dependencies": {
+    "@realtime-switch/core": "file:../../core"
+  },
+  "devDependencies": {
+    "@types/node": "^24.2.1",
+    "typescript": "^5.0.0",
+    "vitest": "^1.0.0"
+  }
+}

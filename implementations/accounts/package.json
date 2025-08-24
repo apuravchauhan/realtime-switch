@@ -1,0 +1,23 @@
+{
+  "name": "@realtime-switch/accounts",
+  "version": "1.0.0",
+  "description": "Account management implementation for AI Explorations",
+  "main": ".dist/index.js",
+  "types": ".dist/index.d.ts",
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsc --watch",
+    "clean": "rm -rf .dist"
+  },
+  "dependencies": {
+    "@realtime-switch/core": "file:../../core",
+    "firebase-admin": "^12.0.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "typescript": "^5.0.0"
+  },
+  "files": [
+    ".dist/**/*"
+  ]
+}

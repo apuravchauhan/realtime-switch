@@ -1,0 +1,56 @@
+{
+  "name": "realtime-switch",
+  "version": "1.0.0",
+  "description": "AI Voice Provider Abstraction Layer",
+  "private": true,
+  "scripts": {
+    "clean": "npm run clean:core && npm run clean:switch && npm run clean:checkpoint && npm run clean:extractors && npm run clean:transformers && npm run clean:accounts && npm run clean:providers && npm run clean:orchestrator",
+    "clean:core": "cd core && npm run clean 2>/dev/null || rm -rf .dist",
+    "clean:switch": "cd implementations/switch && npm run clean 2>/dev/null || rm -rf .dist",
+    "clean:checkpoint": "cd implementations/checkpoint && npm run clean 2>/dev/null || rm -rf .dist",
+    "clean:extractors": "cd implementations/extractors && npm run clean 2>/dev/null || rm -rf .dist", 
+    "clean:transformers": "cd implementations/transformers && npm run clean 2>/dev/null || rm -rf .dist",
+    "clean:accounts": "cd implementations/accounts && npm run clean 2>/dev/null || rm -rf .dist",
+    "clean:providers": "npm run clean:providers:oai && npm run clean:providers:gemini",
+    "clean:providers:oai": "cd implementations/providers/oai && npm run clean 2>/dev/null || rm -rf .dist",
+    "clean:providers:gemini": "cd implementations/providers/gemini && npm run clean 2>/dev/null || rm -rf .dist",
+    "clean:orchestrator": "cd orchestrator && npm run clean 2>/dev/null || rm -rf .dist",
+    
+    "build": "npm run build:core && npm run build:switch && npm run build:checkpoint && npm run build:extractors && npm run build:transformers && npm run build:accounts && npm run build:providers && npm run build:orchestrator",
+    "build:core": "cd core && npm run build",
+    "build:switch": "cd implementations/switch && npm run build",
+    "build:checkpoint": "cd implementations/checkpoint && npm run build",
+    "build:extractors": "cd implementations/extractors && npm run build",
+    "build:transformers": "cd implementations/transformers && npm run build", 
+    "build:accounts": "cd implementations/accounts && npm run build",
+    "build:providers": "npm run build:providers:oai && npm run build:providers:gemini",
+    "build:providers:oai": "cd implementations/providers/oai && npm run build",
+    "build:providers:gemini": "cd implementations/providers/gemini && npm run build",
+    "build:orchestrator": "cd orchestrator && npm run build",
+    
+    "rebuild": "npm run clean && npm run build",
+    
+    "install:all": "npm run install:core && npm run install:switch && npm run install:checkpoint && npm run install:extractors && npm run install:transformers && npm run install:accounts && npm run install:providers && npm run install:orchestrator",
+    "install:core": "cd core && npm install",
+    "install:switch": "cd implementations/switch && npm install",
+    "install:checkpoint": "cd implementations/checkpoint && npm install",
+    "install:extractors": "cd implementations/extractors && npm install",
+    "install:transformers": "cd implementations/transformers && npm install",
+    "install:accounts": "cd implementations/accounts && npm install",
+    "install:providers": "npm run install:providers:oai && npm run install:providers:gemini",
+    "install:providers:oai": "cd implementations/providers/oai && npm install",
+    "install:providers:gemini": "cd implementations/providers/gemini && npm install", 
+    "install:orchestrator": "cd orchestrator && npm install"
+  },
+  "keywords": [
+    "ai",
+    "conversation", 
+    "events",
+    "providers",
+    "websocket",
+    "realtime",
+    "voice ai"
+  ],
+  "author": "Apurav Chauhan and Indu Chauhan",
+  "license": "MIT"
+}

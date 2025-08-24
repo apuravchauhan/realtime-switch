@@ -1,0 +1,30 @@
+{
+  "name": "@realtime-switch/providers-oai",
+  "version": "1.0.0",
+  "description": "OpenAI Realtime API event manager for AI conversation providers",
+  "main": ".dist/index.js",
+  "types": ".dist/index.d.ts",
+  "scripts": {
+    "build": "tsc",
+    "clean": "rm -rf .dist",
+    "test:baseline": "npx ts-node test/OAIEventsBaseline.ts",
+    "test:tool-call": "npx ts-node test/OAIToolCallBaseline.ts",
+    "test:function-call": "npx ts-node test/OAIFunctionCallBaseline.ts"
+  },
+  "keywords": ["ai", "openai", "realtime", "providers", "voice ai"],
+  "author": "Apurav Chauhan and Indu Chauhan",
+  "license": "MIT",
+  "dependencies": {
+    "@realtime-switch/core": "file:../../../core",
+    "dotenv": "^16.4.5",
+    "uWebSockets.js": "github:uNetworking/uWebSockets.js#v20.52.0",
+    "ws": "^8.18.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "@types/ws": "^8.18.1",
+    "nodemon": "^3.1.10",
+    "ts-node": "^10.9.0",
+    "typescript": "^5.8.3"
+  }
+}

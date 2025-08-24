@@ -1,0 +1,28 @@
+{
+  "name": "@realtime-switch/extractors",
+  "version": "1.0.0",
+  "description": "Provider-specific event extractors implementing ServerEventsExtractor interface",
+  "main": ".dist/index.js",
+  "types": ".dist/index.d.ts",
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsc --watch",
+    "clean": "rm -rf .dist"
+  },
+  "keywords": [
+    "ai",
+    "extractors",
+    "events",
+    "providers",
+    "voice ai"
+  ],
+  "author": "Apurav Chauhan and Indu Chauhan",
+  "license": "MIT",
+  "dependencies": {
+    "@realtime-switch/core": "file:../../core"
+  },
+  "devDependencies": {
+    "@types/node": "^20.19.9",
+    "typescript": "^5.8.3"
+  }
+}
