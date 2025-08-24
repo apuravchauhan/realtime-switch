@@ -10,10 +10,10 @@ import { AuthStatus } from './AuthStatus';
  */
 export class AuthService {
   private accountKeys: Map<string, string>;
-  private accountManager: AccountManager;
+  private accountManager: AccountManager | null;
   private config: Config;
 
-  constructor(accountManager: AccountManager) {
+  constructor(accountManager: AccountManager | null) {
     this.accountManager = accountManager;
     this.config = Config.getInstance();
     this.accountKeys = this.loadAccountKeysFromConfig();
@@ -51,14 +51,19 @@ export class AuthService {
       return envKey;
     }
 
-    // Fallback to AccountManager lookup if not found in .env
-    try {
-      const account = await this.accountManager.getAccount(accountId);
-      return account ? account.key : null;
-    } catch (error) {
-      console.error(`[Auth] Error fetching account from database: ${error}`);
-      return null;
+    // Fallback to AccountManager lookup if not found in .env and database is enabled
+    if (this.accountManager) {
+      try {
+        const account = await this.accountManager.getAccount(accountId);
+        return account ? account.key : null;
+      } catch (error) {
+        console.error(`[Auth] Error fetching account from database: ${error}`);
+        return null;
+      }
     }
+
+    // No database fallback available
+    return null;
   }
 
   /**

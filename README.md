@@ -156,6 +156,10 @@ GEMINI_API_KEY=your_gemini_key_here     # Used when voice provider is set to Gem
 # Account Authentication (for local development)
 ACCOUNTS=your-account-id=your-secret-key   # Default HMAC key used for WebSocket authentication
 
+# Database Configuration (Optional)
+ENABLE_DB=false                            # Enable database for dynamic account management (default: false)
+# Note: Local development doesn't need this, but enable if you want dynamic account management using a database
+
 # Provider Switching Configuration
 SWITCH_LATENCY_THRESHOLD_MS=500
 SWITCH_FAILURE_COUNT=3
@@ -214,12 +218,18 @@ node orchestrator/test/auth-test-client.js
 ```
 These generate the correct HMAC hash (`905b80fa2656d8f34c00e077260fc8972502591c384c9413228dbcb19dc7e041`) and test the connection with the default account.
 
-### Database Integration (Production)
+### Database Integration (Optional)
 
-**Firestore (Default):**
-- Used in production to maintain different accounts in a database
-- Allows dynamic account creation and management
-- Stores account keys securely with Firebase authentication integration
+**ENABLE_DB Configuration:**
+- **`ENABLE_DB=false` (Default)**: Uses only `ACCOUNTS` from .env for authentication - perfect for local development and testing
+- **`ENABLE_DB=true`**: Enables database integration for dynamic account management - ideal for production environments
+
+**When ENABLE_DB=true:**
+
+**Firestore Integration:**
+- Provides dynamic account creation and management
+- Stores account keys securely with Firebase authentication integration  
+- Requires `FIRESTORE_PROJECT_ID` and `GOOGLE_APPLICATION_CREDENTIALS` in your .env
 
 **Extensible Architecture:**
 - The `AccountManager` interface can be extended for any database
@@ -229,10 +239,10 @@ These generate the correct HMAC hash (`905b80fa2656d8f34c00e077260fc8972502591c3
   const accountManager = new YourCustomAccountManager();
   ```
 
-**Development vs Production:**
-- **Local**: Uses `ACCOUNTS` environment variable for quick testing
-- **Production**: Uses Firestore (or your custom DB) for scalable account management
-- **Fallback**: System checks `.env` ACCOUNTS first, then falls back to database lookup
+**Authentication Fallback System:**
+1. **First**: Checks `ACCOUNTS` from .env configuration
+2. **Then**: Falls back to database lookup (if `ENABLE_DB=true`)
+3. **Result**: `.env` accounts work immediately, database provides additional accounts when needed
 
 ## Usage Examples
 
@@ -455,11 +465,9 @@ npm run dev
 
 ## API Documentation
 
-[TODO: Add API documentation]
+We are looking for early adopters and developers who can help us test this API. If interested, please join our early adopters program at [realtimeswitch.com](https://realtimeswitch.com).
 
-## Contributing
-
-[TODO: Add contribution guidelines]
+Coming soon.
 
 ## License
 

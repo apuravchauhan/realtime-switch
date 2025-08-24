@@ -21,7 +21,8 @@ type UserData = {
 }
 
 // Initialize account manager and authentication service
-const accountManager = new FirestoreAccountManager();
+const enableDb = config.get(ConfigKeys.ENABLE_DB)?.toLowerCase() === 'true';
+const accountManager = enableDb ? new FirestoreAccountManager() : null;
 const authService = new AuthService(accountManager);
 
 const app = uWS.App()
@@ -131,7 +132,7 @@ const app = uWS.App()
   })
   // Fallback for unknown routes
   .any('/*', (res, req) => {
-    res.writeStatus('404').end('Not Found');
+    res.writeStatus('404').end('Server is up. Connect via web socket');
   })
   .listen(port, (token) => {
     if (token) {
