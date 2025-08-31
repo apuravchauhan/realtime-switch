@@ -29,7 +29,7 @@ const app = uWS.App()
   .ws('/*', {
     compression: uWS.SHARED_COMPRESSOR,
     maxPayloadLength: 2 * 1024 * 1024,
-    idleTimeout: 960,
+    idleTimeout: 10,
     upgrade: async (res, req, context) => {
       // Set abort handler FIRST
       res.onAborted(() => {
