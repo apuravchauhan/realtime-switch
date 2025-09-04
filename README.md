@@ -469,7 +469,7 @@ npm run dev
 
 We are looking for early adopters and developers who can help us test this API. If interested, please join our early adopters program at [realtimeswitch.com](https://realtimeswitch.com).
 
-Detailed docs coming soon.
+[Documentation](https://realtimeswitch.com/docs/introduction)
 
 ## License
 
