@@ -1,0 +1,19 @@
+{
+  "name": "@realtime-switch/observability",
+  "version": "1.0.0",
+  "description": "Monitoring and observability tools for realtime-switch platform",
+  "main": "monitor.js",
+  "scripts": {
+    "setup": "node setup.js",
+    "monitor": "node monitor.js",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": ["monitoring", "pm2", "observability"],
+  "author": "",
+  "license": "ISC",
+  "devDependencies": {
+    "@aws-sdk/client-ses": "^3.0.0",
+    "dotenv": "^16.0.0",
+    "pm2": "^5.0.0"
+  }
+}
