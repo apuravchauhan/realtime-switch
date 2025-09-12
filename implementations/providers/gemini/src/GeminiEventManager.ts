@@ -10,6 +10,13 @@ export default class GeminiEventManager extends ProviderManager {
   private lastPingTime: number = 0;
   private isSetupComplete: boolean = false;
   private isProviderConnectedCallbackCalled: boolean = false;
+  
+  // Store event handlers for proper cleanup
+  private openHandler: (() => void) | null = null;
+  private messageHandler: ((event: any) => void) | null = null;
+  private errorHandler: ((event: any) => void) | null = null;
+  private closeHandler: ((event: any) => void) | null = null;
+  private pongHandler: ((data: Buffer) => void) | null = null;
 
   constructor(sessionId: string) {
     super();
@@ -50,12 +57,12 @@ export default class GeminiEventManager extends ProviderManager {
 
     this.geminiSocket = new WebSocket(url);
     
-    this.geminiSocket.addEventListener('open', () => this.handleOpen());
-    this.geminiSocket.addEventListener('message', (event) => this.handleMessage(event as any));
-    this.geminiSocket.addEventListener('error', (event) => this.handleError(event as any));
-    this.geminiSocket.addEventListener('close', (event) => this.handleClose(event as any));
-
-    this.geminiSocket.on('pong', (data: Buffer) => {
+    // Store handlers for later removal
+    this.openHandler = () => this.handleOpen();
+    this.messageHandler = (event) => this.handleMessage(event as any);
+    this.errorHandler = (event) => this.handleError(event as any);
+    this.closeHandler = (event) => this.handleClose(event as any);
+    this.pongHandler = (data: Buffer) => {
       if (data.length === 0) {
         console.log(`[Gemini] Received pong from Gemini server (empty)`);
       } else {
@@ -75,7 +82,13 @@ export default class GeminiEventManager extends ProviderManager {
           console.error(`[Gemini] Error parsing pong data:`, error);
         }
       }
-    });
+    };
+    
+    this.geminiSocket.addEventListener('open', this.openHandler);
+    this.geminiSocket.addEventListener('message', this.messageHandler);
+    this.geminiSocket.addEventListener('error', this.errorHandler);
+    this.geminiSocket.addEventListener('close', this.closeHandler);
+    this.geminiSocket.on('pong', this.pongHandler);
   }
 
   private handleOpen(): void {
@@ -145,14 +158,43 @@ export default class GeminiEventManager extends ProviderManager {
   }
 
   cleanup(): void {
-    console.log(`[Gemini] Cleanup called`);
+    console.log(`[Gemini] Starting cleanup - removing event listeners and closing connection`);
     super.cleanup();
     this.selfClosing = true;
     
-    
     if (this.geminiSocket) {
-      this.geminiSocket.close();
+      // ✅ Remove all event listeners to prevent memory leaks
+      if (this.openHandler) {
+        this.geminiSocket.removeEventListener('open', this.openHandler);
+        this.openHandler = null;
+      }
+      if (this.messageHandler) {
+        this.geminiSocket.removeEventListener('message', this.messageHandler);
+        this.messageHandler = null;
+      }
+      if (this.errorHandler) {
+        this.geminiSocket.removeEventListener('error', this.errorHandler);
+        this.errorHandler = null;
+      }
+      if (this.closeHandler) {
+        this.geminiSocket.removeEventListener('close', this.closeHandler);
+        this.closeHandler = null;
+      }
+      if (this.pongHandler) {
+        this.geminiSocket.off('pong', this.pongHandler);
+        this.pongHandler = null;
+      }
+      
+      // Close the WebSocket connection
+      if (this.geminiSocket.readyState !== WebSocket.CLOSED) {
+        this.geminiSocket.close();
+      }
+      
+      console.log(`[Gemini] All event listeners removed and connection closed`);
     }
+    
+    // Clear callback references
+    this.statsCallback = undefined;
   }
 
   isConnected(): boolean {

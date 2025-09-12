@@ -88,19 +88,23 @@ export class Pipeline {
   }
 
   // Provider connected callback method (called by individual callback function)
-  private async onProviderConnected(): Promise<void> {
+  private onProviderConnected(): void {
     console.log('[Pipeline] Provider connected, replaying session configuration...');
 
-    // ✅ Get session config with conversation history from SessionManager
-    const sessionConfig = await this.sessionManager.getSessionConfiguration();
-    if (sessionConfig && sessionConfig.src === this.apiStyle) {
-      console.log(`[Pipeline] Replaying session config with conversation context:`, sessionConfig.payload);
-
-      // ✅ Skip SessionManager to prevent duplicate saves - replay directly to ClientTransformer
-      this.clientTransformer.receiveEvent(sessionConfig);
-    } else {
-      console.log('[Pipeline] No session configuration to replay');
-    }
+    // ✅ Fire-and-forget session loading to avoid blocking provider connection
+    this.sessionManager.getSessionConfiguration()
+      .then(sessionConfig => {
+        if (sessionConfig && sessionConfig.src === this.apiStyle) {
+          console.log(`[Pipeline] Replaying session config with conversation context:`, sessionConfig.payload);
+          // ✅ Skip SessionManager to prevent duplicate saves - replay directly to ClientTransformer
+          this.clientTransformer.receiveEvent(sessionConfig);
+        } else {
+          console.log('[Pipeline] No session configuration to replay');
+        }
+      })
+      .catch(error => {
+        console.error('[Pipeline] Failed to load session config:', error);
+      });
   }
 
   public updateProvider(newProvider: Providers): void {

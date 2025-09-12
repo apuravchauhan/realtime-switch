@@ -1,5 +1,6 @@
-import { Checkpoint, ProvidersEvent, ServerEventsExtractor, Persistence, ConversationEntry } from '@realtime-switch/core';
+import { Checkpoint, ProvidersEvent, ServerEventsExtractor, Persistence, ConversationEntry, Config, ConfigKeys } from '@realtime-switch/core';
 import { FilePersistence } from './FilePersistence';
+import { SQLitePersistence } from './SQLitePersistence';
 
 export abstract class BaseCheckpoint extends Checkpoint {
   protected sessionId: string;
@@ -16,7 +17,7 @@ export abstract class BaseCheckpoint extends Checkpoint {
     super();
     this.sessionId = sessionId;
     this.extractor = extractor;
-    this.persistence = persistence || new FilePersistence();
+    this.persistence = persistence || BaseCheckpoint.getPersistence();
     this.setupCallbacks(extractor);
   }
 
@@ -60,45 +61,58 @@ export abstract class BaseCheckpoint extends Checkpoint {
 
     // Check if buffer exceeds limit
     if (this.currentContentLength > this.BUFFER_SIZE_LIMIT) {
-      await this.flushBuffer();
+      this.flushBuffer().catch(error => {
+        console.error('[BaseCheckpoint] Background flush failed:', error);
+      });
     }
   }
 
   /**
-   * Flushes the current buffer to persistence
+   * Flushes the current buffer to persistence (non-blocking)
    */
   private async flushBuffer(): Promise<void> {
     if (this.currentContentBuffer.length > 0) {
       // Simply join all buffer content - newlines already included in the buffer
       const content = this.currentContentBuffer.join('');
-      await this.persistence.append('conversations', this.sessionId, content);
+
+      // Make persistence non-blocking - fire and forget
+      this.persistence.append('conversations', this.sessionId, content)
+        .catch(error => {
+          console.error('[BaseCheckpoint] Background persistence failed:', error);
+        });
     }
 
-    // Reset buffer state
+    // Reset buffer state immediately (don't wait for persistence)
     this.currentType = null;
     this.currentContentBuffer = [];
     this.currentContentLength = 0;
   }
 
   /**
-   * Public method to force flush remaining buffer (useful for cleanup)
+   * Public method to force flush remaining buffer (useful for cleanup) - non-blocking
    */
-  public async flushPendingBuffer(): Promise<void> {
-    await this.flushBuffer();
+  public flushPendingBuffer(): void {
+    this.flushBuffer().catch(error => {
+      console.error('[BaseCheckpoint] Background flush failed:', error);
+    });
   }
 
 
 
 
-  async createCheckpoint(reason?: string): Promise<void> {
-    // Flush any pending buffer before creating checkpoint to ensure data integrity
-    await this.flushPendingBuffer();
+  createCheckpoint(reason?: string): void {
+    // Flush any pending buffer before creating checkpoint to ensure data integrity (non-blocking)
+    this.flushPendingBuffer();
 
     const checkpointContent = `Checkpoint: ${reason || 'Manual checkpoint'} - ${new Date().toISOString()}`;
-    await this.save('agent_checkpoint', checkpointContent);
 
-    // Flush the checkpoint immediately since it's a significant event
-    await this.flushPendingBuffer();
+    // Make checkpoint save non-blocking
+    this.save('agent_checkpoint', checkpointContent).catch(error => {
+      console.error('[BaseCheckpoint] Checkpoint save failed:', error);
+    });
+
+    // Flush the checkpoint immediately since it's a significant event (non-blocking)
+    this.flushPendingBuffer();
   }
 
   async loadFromFile(sessionId?: string): Promise<boolean> {
@@ -107,20 +121,46 @@ export abstract class BaseCheckpoint extends Checkpoint {
   }
 
   async cleanup(): Promise<void> {
-    // Flush any remaining buffered content before cleanup
-    await this.flushPendingBuffer();
+    console.log(`[BaseCheckpoint] Cleaning up session: ${this.sessionId}`);
 
-    await this.persistence.cleanup();
+    // Flush any remaining buffered content before cleanup (non-blocking for final cleanup)
+    this.flushPendingBuffer();
+
+    // ✅ CRITICAL FIX: Don't cleanup singleton persistence per session
+    // Only cleanup persistence if it's NOT a singleton (e.g., FilePersistence)
+    if (this.persistence.constructor.name === 'FilePersistence') {
+      try {
+        await this.persistence.cleanup();
+        console.log(`[BaseCheckpoint] FilePersistence cleaned up for session: ${this.sessionId}`);
+      } catch (error) {
+        console.error(`[BaseCheckpoint] FilePersistence cleanup failed for session: ${this.sessionId}:`, error);
+      }
+    }
+    // SQLitePersistence singleton is shared - don't cleanup per session
 
     if (this.extractor) {
       this.extractor.cleanup();
       this.extractor = null;
+      console.log(`[BaseCheckpoint] Extractor cleaned up for session: ${this.sessionId}`);
+    }
+
+    console.log(`[BaseCheckpoint] Cleanup completed for session: ${this.sessionId}`);
+  }
+  static getPersistence(): Persistence {
+    const config = Config.getInstance();
+    const persistenceType = config.get(ConfigKeys.PERSISTENCE) || 'FILE';
+
+    switch (persistenceType.toUpperCase()) {
+      case 'SQLITE':
+        return SQLitePersistence.getInstance();
+      case 'FILE':
+      default:
+        return new FilePersistence({ basePath: './' });
     }
   }
-
   static async loadConversationHistory(sessionId: string, persistence?: Persistence): Promise<string | null> {
     try {
-      const persistenceLayer = persistence || new FilePersistence();
+      const persistenceLayer = persistence || BaseCheckpoint.getPersistence();
       const content = await persistenceLayer.read('conversations', sessionId);
 
       return content ? content.trim() : null;

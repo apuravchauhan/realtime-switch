@@ -6,6 +6,53 @@ import { AuthService } from '@realtime-switch/core';
 import { FirestoreAccountManager } from '@realtime-switch/accounts';
 import { Banner } from './Banner';
 
+// Global Error Handlers
+process.on('uncaughtException', (error) => {
+  console.error('🚨 [Server] Uncaught Exception:', error);
+  console.error('Stack:', error.stack);
+  // Log but don't exit immediately to allow cleanup
+  setTimeout(() => {
+    console.error('🚨 [Server] Exiting due to uncaught exception');
+    process.exit(1);
+  }, 1000);
+});
+
+process.on('unhandledRejection', (reason, promise) => {
+  console.error('🚨 [Server] Unhandled Promise Rejection at:', promise);
+  console.error('🚨 [Server] Reason:', reason);
+  // Don't exit on unhandled rejections, just log them
+});
+
+process.on('SIGTERM', async () => {
+  console.log('📡 [Server] Received SIGTERM, shutting down gracefully...');
+  await gracefulShutdown();
+  process.exit(0);
+});
+
+process.on('SIGINT', async () => {
+  console.log('📡 [Server] Received SIGINT (Ctrl+C), shutting down gracefully...');
+  await gracefulShutdown();
+  process.exit(0);
+});
+
+// Graceful shutdown handler
+async function gracefulShutdown() {
+  try {
+    console.log('🧹 [Server] Starting graceful shutdown...');
+
+    // Import SQLitePersistence for singleton cleanup
+    const { SQLitePersistence } = await import('@realtime-switch/checkpoint');
+
+    // Shutdown singleton resources
+    await SQLitePersistence.shutdown();
+    console.log('✅ [Server] SQLitePersistence singleton shut down');
+
+    console.log('✅ [Server] Graceful shutdown completed');
+  } catch (error) {
+    console.error('❌ [Server] Error during graceful shutdown:', error);
+  }
+}
+
 const config = Config.getInstance();
 const port = parseInt(config.get(ConfigKeys.PORT) || '3000');
 const host = config.get(ConfigKeys.HOST) || 'localhost';
@@ -102,8 +149,10 @@ const app = uWS.App()
 
       // console.log(`[WebSocket] Connected - Account: ${userData.accountId}, Session: ${userData.id}, API Style: ${selectedApiStyle}, Provider: ${selectedProvider}`);
       const socketEventManager = new SocketEventManager(ws);
-      const sessionId = userData.id || `session-${Date.now()}`;
-      const pipeline = new Pipeline(selectedApiStyle, sessionId, socketEventManager, selectedProvider);
+      const sessionId = userData.id;
+      const accId = userData.accountId;
+
+      const pipeline = new Pipeline(selectedApiStyle, (accId + sessionId), socketEventManager, selectedProvider);
       userData.pipeline = pipeline
     },
     message: (ws: uWS.WebSocket<UserData>, message, isBinary) => {
@@ -122,12 +171,24 @@ const app = uWS.App()
     },
     close: (ws, code, message) => {
       const userData = ws.getUserData();
-      console.log(`WebSocket closed - Session: ${userData.id}, Code: ${code}`);
+      console.log(`🔌 [Server] WebSocket closed - Session: ${userData.id}, Account: ${userData.accountId}, Provider: ${userData.provider}, Code: ${code}`);
 
       // Cleanup pipeline and all associated resources
       if (userData.pipeline) {
-        userData.pipeline.cleanup();
+        try {
+          userData.pipeline.cleanup();
+          console.log(`✅ [Server] Pipeline cleanup completed for session: ${userData.id}`);
+        } catch (error) {
+          console.error(`❌ [Server] Pipeline cleanup failed for session: ${userData.id}:`, error);
+        }
+      } else {
+        console.warn(`⚠️ [Server] No pipeline found for session: ${userData.id}`);
       }
+
+      // Clear userData references to prevent memory leaks  
+      userData.pipeline = null as any;
+
+      console.log(`🧹 [Server] Session ${userData.id} cleanup completed`);
     }
   })
   // Fallback for unknown routes

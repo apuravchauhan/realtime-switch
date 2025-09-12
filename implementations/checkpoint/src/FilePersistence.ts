@@ -15,14 +15,18 @@ export class FilePersistence implements Persistence {
     const filePath = this.getFilePath(entity, sessionId);
     await this.ensureDirectoryExists(filePath);
     
-    await fs.appendFile(filePath, content, 'utf-8');
+    fs.appendFile(filePath, content, 'utf-8').catch(error => {
+      console.error(`[FilePersistence] Append failed for ${entity}/${sessionId}:`, error);
+    });
   }
 
   async overwrite(entity: string, sessionId: string, content: string): Promise<void> {
     const filePath = this.getFilePath(entity, sessionId);
     await this.ensureDirectoryExists(filePath);
     
-    await fs.writeFile(filePath, content, 'utf-8');
+    fs.writeFile(filePath, content, 'utf-8').catch(error => {
+      console.error(`[FilePersistence] Overwrite failed for ${entity}/${sessionId}:`, error);
+    });
   }
 
   async read(entity: string, sessionId: string): Promise<string | null> {
@@ -41,13 +45,11 @@ export class FilePersistence implements Persistence {
   async delete(entity: string, sessionId: string): Promise<void> {
     const filePath = this.getFilePath(entity, sessionId);
     
-    try {
-      await fs.unlink(filePath);
-    } catch (error: any) {
-      if (error.code !== 'ENOENT') {
-        throw error;
+    fs.unlink(filePath).catch(error => {
+      if (error.code !== 'ENOENT') { // Ignore "file not found" errors
+        console.error(`[FilePersistence] Delete failed for ${entity}/${sessionId}:`, error);
       }
-    }
+    });
   }
 
   async exists(entity: string, sessionId: string): Promise<boolean> {

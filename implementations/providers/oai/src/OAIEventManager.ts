@@ -6,6 +6,13 @@ export default class OAIEventManager extends ProviderManager {
   private selfClosing: boolean = false;
   private statsCallback?: (stats: PerformanceStats) => void;
   private lastPingTime: number = 0;
+  
+  // Store event handlers for proper cleanup
+  private openHandler: (() => void) | null = null;
+  private messageHandler: ((event: any) => void) | null = null;
+  private errorHandler: ((event: any) => void) | null = null;
+  private closeHandler: (() => void) | null = null;
+  private pongHandler: ((data: Buffer) => void) | null = null;
 
   constructor() {
     super();
@@ -37,15 +44,19 @@ export default class OAIEventManager extends ProviderManager {
         "OpenAI-Beta": "realtime=v1",
       }
     });
-    this.oaiSocket.addEventListener('open', () => this.init());
-    this.oaiSocket.addEventListener('message', (event) =>
-      this.emitEvent({ src: Providers.OPENAI, payload: JSON.parse(event.data as string) }));
-    this.oaiSocket.addEventListener('error', (event) =>
-      this.error({ src: Providers.OPENAI, payload: event }));
-    this.oaiSocket.addEventListener('close', () => this.handleClose());
+    // Store handlers for later removal
+    this.openHandler = () => this.init();
+    this.messageHandler = (event) => this.emitEvent({ src: Providers.OPENAI, payload: JSON.parse(event.data as string) });
+    this.errorHandler = (event) => this.error({ src: Providers.OPENAI, payload: event });
+    this.closeHandler = () => this.handleClose();
+    
+    this.oaiSocket.addEventListener('open', this.openHandler);
+    this.oaiSocket.addEventListener('message', this.messageHandler);
+    this.oaiSocket.addEventListener('error', this.errorHandler);
+    this.oaiSocket.addEventListener('close', this.closeHandler);
 
     // Handle pong responses with latency calculation
-    this.oaiSocket.on('pong', (data: Buffer) => {
+    this.pongHandler = (data: Buffer) => {
       if (data.length === 0) {
         console.log(`[OAI] Received pong from OpenAI server (empty)`);
       } else {
@@ -65,7 +76,8 @@ export default class OAIEventManager extends ProviderManager {
           console.error(`[OAI] Error parsing pong data:`, error);
         }
       }
-    });
+    };
+    this.oaiSocket.on('pong', this.pongHandler);
 
   }
 
@@ -99,12 +111,43 @@ export default class OAIEventManager extends ProviderManager {
   }
 
   cleanup() {
+    console.log(`[OAI] Starting cleanup - removing event listeners and closing connection`);
     super.cleanup();
     this.selfClosing = true;
     
-    if (this.oaiSocket && this.oaiSocket.readyState !== WebSocket.CLOSED) {
-      this.oaiSocket.close();
+    if (this.oaiSocket) {
+      // ✅ Remove all event listeners to prevent memory leaks
+      if (this.openHandler) {
+        this.oaiSocket.removeEventListener('open', this.openHandler);
+        this.openHandler = null;
+      }
+      if (this.messageHandler) {
+        this.oaiSocket.removeEventListener('message', this.messageHandler);
+        this.messageHandler = null;
+      }
+      if (this.errorHandler) {
+        this.oaiSocket.removeEventListener('error', this.errorHandler);
+        this.errorHandler = null;
+      }
+      if (this.closeHandler) {
+        this.oaiSocket.removeEventListener('close', this.closeHandler);
+        this.closeHandler = null;
+      }
+      if (this.pongHandler) {
+        this.oaiSocket.off('pong', this.pongHandler);
+        this.pongHandler = null;
+      }
+      
+      // Close the WebSocket connection
+      if (this.oaiSocket.readyState !== WebSocket.CLOSED) {
+        this.oaiSocket.close();
+      }
+      
+      console.log(`[OAI] All event listeners removed and connection closed`);
     }
+    
+    // Clear callback references
+    this.statsCallback = undefined;
   }
 
   isConnected(): boolean {
