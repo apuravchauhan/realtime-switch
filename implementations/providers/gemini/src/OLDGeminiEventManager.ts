@@ -33,12 +33,13 @@ export default class GeminiEventManager extends EventManager {
       const model = 'gemini-2.0-flash-live-001';
 
       // Load conversation history if available
-      const conversationHistory = BaseCheckpoint.loadConversationHistory(this.sessionId);
+      // TODO: Update to use accountId when this OLD file is refactored
+      // const conversationHistory = BaseCheckpoint.loadConversationHistory(this.accountId, this.sessionId);
       let systemText = "Talk to user.";
 
-      if (conversationHistory) {
-        systemText += " Here is the previous conversation history that you can use as context to continue: " + conversationHistory;
-      }
+      // if (conversationHistory) {
+      //   systemText += " Here is the previous conversation history that you can use as context to continue: " + conversationHistory;
+      // }
 
       const config = {
         responseModalities: [Modality.AUDIO],

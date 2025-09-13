@@ -7,12 +7,14 @@ export class SessionManager extends EventManager {
   private sessionConfiguration: ProvidersEvent | null = null;
   private extractor: ClientEventsExtractor | null;
   private apiStyle: Providers;
+  private accountId: string;
   private sessionId: string;
   private sessionPersistence: Persistence;
 
-  constructor(apiStyle: Providers, sessionId: string) {
+  constructor(apiStyle: Providers, accountId: string, sessionId: string) {
     super();
     this.apiStyle = apiStyle;
+    this.accountId = accountId;
     this.sessionId = sessionId;
 
     // ✅ Initialize session persistence
@@ -86,7 +88,7 @@ export class SessionManager extends EventManager {
   private async saveSessionConfiguration(): Promise<void> {
     if (this.sessionConfiguration) {
       const content = JSON.stringify(this.sessionConfiguration, null, 2);
-      await this.sessionPersistence.overwrite('sessions', this.sessionId, content);
+      await this.sessionPersistence.overwrite(this.accountId, 'sessions', this.sessionId, content);
       console.log(`[SessionManager] Session configuration saved for ${this.sessionId}`);
     }
   }
@@ -94,7 +96,7 @@ export class SessionManager extends EventManager {
   // ✅ Load session configuration from persistence
   private async loadSessionConfiguration(): Promise<void> {
     try {
-      const content = await this.sessionPersistence.read('sessions', this.sessionId);
+      const content = await this.sessionPersistence.read(this.accountId, 'sessions', this.sessionId);
 
       if (content) {
         this.sessionConfiguration = JSON.parse(content);
@@ -114,7 +116,7 @@ export class SessionManager extends EventManager {
       return null;
     }
 
-    const conversationHistory = await BaseCheckpoint.loadConversationHistory(this.sessionId);
+    const conversationHistory = await BaseCheckpoint.loadConversationHistory(this.accountId, this.sessionId);
 
     if (conversationHistory) {
       // Deep copy - only safe way with unknown user structures

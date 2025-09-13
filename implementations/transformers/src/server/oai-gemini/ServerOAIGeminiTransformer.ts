@@ -161,4 +161,8 @@ export class ServerOAIGeminiTransformer extends ServerEventTransformer {
       // It will be overwritten when next user conversation item is created
     }
   }
+
+  internalStats(event: ProvidersEvent): void {
+    // Empty - internal stats are not real events and should not pass through
+  }
 }

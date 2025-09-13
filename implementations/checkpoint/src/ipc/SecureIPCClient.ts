@@ -12,6 +12,11 @@ export enum MessageType {
   CLEANUP = 'CLEANUP',
   OVERWRITE = 'OVERWRITE',
   
+  // Generic CRUD Operations
+  INSERT_USAGE = 'INSERT_USAGE',
+  UPDATE_USAGE = 'UPDATE_USAGE',
+  READ_USAGE = 'READ_USAGE',
+  
   // Response Types
   SUCCESS = 'SUCCESS',
   ERROR = 'ERROR',
@@ -29,6 +34,10 @@ export interface IPCMessage {
   category?: string;
   key?: string;
   content?: string;
+  // Generic CRUD fields
+  table?: string;
+  data?: Record<string, any>;
+  where?: Record<string, any>;
   timestamp: number;
 }
 

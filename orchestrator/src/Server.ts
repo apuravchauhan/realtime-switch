@@ -10,11 +10,8 @@ import { Banner } from './Banner';
 process.on('uncaughtException', (error) => {
   console.error('🚨 [Server] Uncaught Exception:', error);
   console.error('Stack:', error.stack);
-  // Log but don't exit immediately to allow cleanup
-  setTimeout(() => {
-    console.error('🚨 [Server] Exiting due to uncaught exception');
-    process.exit(1);
-  }, 1000);
+  console.error('⚠️ [Server] Continuing after uncaught exception - consider fixing the root cause');
+  // Don't exit - log and continue running
 });
 
 process.on('unhandledRejection', (reason, promise) => {
@@ -152,7 +149,7 @@ const app = uWS.App()
       const sessionId = userData.id;
       const accId = userData.accountId;
 
-      const pipeline = new Pipeline(selectedApiStyle, (accId + sessionId), socketEventManager, selectedProvider);
+      const pipeline = new Pipeline(selectedApiStyle, accId, sessionId, socketEventManager, selectedProvider);
       userData.pipeline = pipeline
     },
     message: (ws: uWS.WebSocket<UserData>, message, isBinary) => {

@@ -3,12 +3,12 @@ import { OAIEventManager } from '@realtime-switch/providers-oai';
 import { GeminiEventManager } from '@realtime-switch/providers-gemini';
 
 export class ProviderRegistry {
-  static getProvider(provider: Providers, sessionId?: string): ProviderManager {
+  static getProvider(provider: Providers, accountId: string, sessionId: string): ProviderManager {
     if (provider === Providers.OPENAI) {
-      return new OAIEventManager();
+      return new OAIEventManager(accountId, sessionId);
     }
     if (provider === Providers.GEMINI) {
-      return new GeminiEventManager(sessionId || 'default-session');
+      return new GeminiEventManager(accountId, sessionId);
     }
 
     throw new Error(`Unsupported provider: ${provider}`);

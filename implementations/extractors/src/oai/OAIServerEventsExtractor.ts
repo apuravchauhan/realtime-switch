@@ -6,6 +6,7 @@ export class OAIServerEventsExtractor implements ServerEventsExtractor {
   private responseAudioCallback?: (event: ProvidersEvent) => void;
   private toolCallCallback?: (event: ProvidersEvent) => void;
   private turnCallback?: (event: ProvidersEvent) => void;
+  private internalStatsCallback?: (event: ProvidersEvent) => void;
 
   onUserTranscript(callback: (event: ProvidersEvent) => void): void {
     this.userTranscriptCallback = callback;
@@ -27,12 +28,17 @@ export class OAIServerEventsExtractor implements ServerEventsExtractor {
     this.turnCallback = callback;
   }
 
+  onInternalStats(callback: (event: ProvidersEvent) => void): void {
+    this.internalStatsCallback = callback;
+  }
+
   cleanup(): void {
     this.userTranscriptCallback = undefined;
     this.responseTranscriptCallback = undefined;
     this.responseAudioCallback = undefined;
     this.toolCallCallback = undefined;
     this.turnCallback = undefined;
+    this.internalStatsCallback = undefined;
   }
 
   extract(event: ProvidersEvent): void {
@@ -65,6 +71,10 @@ export class OAIServerEventsExtractor implements ServerEventsExtractor {
 
       case 'response.done':
         this.turnCallback?.(event);
+        // Also extract usage data from the same event
+        if (event.payload?.response?.usage) {
+          this.internalStatsCallback?.(event);
+        }
         break;
 
       default:

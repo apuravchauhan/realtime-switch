@@ -5,6 +5,7 @@ import { BaseCheckpoint } from '@realtime-switch/checkpoint';
 export default class GeminiEventManager extends ProviderManager {
   private geminiSocket!: WebSocket;
   private selfClosing: boolean = false;
+  private accountId: string;
   private sessionId: string;
   private statsCallback?: (stats: PerformanceStats) => void;
   private lastPingTime: number = 0;
@@ -18,8 +19,9 @@ export default class GeminiEventManager extends ProviderManager {
   private closeHandler: ((event: any) => void) | null = null;
   private pongHandler: ((data: Buffer) => void) | null = null;
 
-  constructor(sessionId: string) {
+  constructor(accountId: string, sessionId: string) {
     super();
+    this.accountId = accountId;
     this.sessionId = sessionId || 'default-session';
     this.connect();
   }
@@ -108,6 +110,24 @@ export default class GeminiEventManager extends ProviderManager {
         console.error(`[Gemini] Server error:`, message.error);
       }
 
+      // Check for usage data and record directly
+      if (message.usageMetadata) {
+        console.log(`[GeminiEventManager] Recording usage for ${this.accountId}:`, {
+          inputTokens: message.usageMetadata.promptTokenCount,
+          outputTokens: message.usageMetadata.responseTokenCount,
+          totalTokens: message.usageMetadata.totalTokenCount
+        });
+        
+        this.recordUsage(
+          'GEMINI',
+          message.usageMetadata.promptTokenCount || 0,
+          message.usageMetadata.responseTokenCount || 0,
+          message.usageMetadata.totalTokenCount || 0
+        ).catch(error => {
+          console.error('[GeminiEventManager] Usage recording failed:', error);
+        });
+      }
+
       // Emit all messages as ProvidersEvent (matching OAI pattern)
       this.emitEvent({ 
         src: Providers.GEMINI, 
@@ -116,6 +136,27 @@ export default class GeminiEventManager extends ProviderManager {
     } catch (error) {
       console.error(`[Gemini] Error parsing message:`, error);
       console.error(`[Gemini] Raw message:`, event.data);
+    }
+  }
+
+  // Usage recording method
+  private async recordUsage(provider: string, inputTokens: number, outputTokens: number, totalTokens: number): Promise<void> {
+    try {
+      const persistence = BaseCheckpoint.getPersistence();
+      const usageData = {
+        account_id: this.accountId,
+        session_id: this.sessionId,
+        provider: provider,
+        input_tokens: inputTokens,
+        output_tokens: outputTokens,
+        total_tokens: totalTokens,
+        audio_duration_ms: 0
+      };
+
+      persistence.insert('usage_metrics', usageData);
+    } catch (error) {
+      console.error(`[GeminiEventManager] Failed to record usage:`, error);
+      throw error;
     }
   }
 
@@ -185,9 +226,14 @@ export default class GeminiEventManager extends ProviderManager {
         this.pongHandler = null;
       }
       
-      // Close the WebSocket connection
-      if (this.geminiSocket.readyState !== WebSocket.CLOSED) {
-        this.geminiSocket.close();
+      // Close the WebSocket connection safely
+      try {
+        if (this.geminiSocket.readyState !== WebSocket.CLOSED) {
+          this.geminiSocket.close();
+        }
+      } catch (error) {
+        console.error(`[Gemini] Error closing WebSocket during cleanup:`, error instanceof Error ? error.message : String(error));
+        // Don't throw - cleanup should continue
       }
       
       console.log(`[Gemini] All event listeners removed and connection closed`);

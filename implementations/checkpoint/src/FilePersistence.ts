@@ -11,8 +11,8 @@ export class FilePersistence implements Persistence {
     this.basePath = config.basePath || './';
   }
 
-  async append(entity: string, sessionId: string, content: string): Promise<void> {
-    const filePath = this.getFilePath(entity, sessionId);
+  async append(accountId: string, entity: string, sessionId: string, content: string): Promise<void> {
+    const filePath = this.getFilePath(accountId, entity, sessionId);
     await this.ensureDirectoryExists(filePath);
     
     fs.appendFile(filePath, content, 'utf-8').catch(error => {
@@ -20,8 +20,8 @@ export class FilePersistence implements Persistence {
     });
   }
 
-  async overwrite(entity: string, sessionId: string, content: string): Promise<void> {
-    const filePath = this.getFilePath(entity, sessionId);
+  async overwrite(accountId: string, entity: string, sessionId: string, content: string): Promise<void> {
+    const filePath = this.getFilePath(accountId, entity, sessionId);
     await this.ensureDirectoryExists(filePath);
     
     fs.writeFile(filePath, content, 'utf-8').catch(error => {
@@ -29,8 +29,8 @@ export class FilePersistence implements Persistence {
     });
   }
 
-  async read(entity: string, sessionId: string): Promise<string | null> {
-    const filePath = this.getFilePath(entity, sessionId);
+  async read(accountId: string, entity: string, sessionId: string): Promise<string | null> {
+    const filePath = this.getFilePath(accountId, entity, sessionId);
     
     try {
       return await fs.readFile(filePath, 'utf-8');
@@ -42,8 +42,8 @@ export class FilePersistence implements Persistence {
     }
   }
 
-  async delete(entity: string, sessionId: string): Promise<void> {
-    const filePath = this.getFilePath(entity, sessionId);
+  async delete(accountId: string, entity: string, sessionId: string): Promise<void> {
+    const filePath = this.getFilePath(accountId, entity, sessionId);
     
     fs.unlink(filePath).catch(error => {
       if (error.code !== 'ENOENT') { // Ignore "file not found" errors
@@ -52,8 +52,8 @@ export class FilePersistence implements Persistence {
     });
   }
 
-  async exists(entity: string, sessionId: string): Promise<boolean> {
-    const filePath = this.getFilePath(entity, sessionId);
+  async exists(accountId: string, entity: string, sessionId: string): Promise<boolean> {
+    const filePath = this.getFilePath(accountId, entity, sessionId);
     try {
       await fs.access(filePath);
       return true;
@@ -70,8 +70,31 @@ export class FilePersistence implements Persistence {
     // No buffering, so nothing to cleanup
   }
 
-  private getFilePath(entity: string, sessionId: string): string {
-    const entityDir = path.join(this.basePath, `.${entity}`);
+  // Generic CRUD operations - Not implemented for file-based storage
+  async insert(table: string, data: Record<string, any>): Promise<void> {
+    console.warn(`[FilePersistence] Generic insert not supported for table: ${table}. Use SQLitePersistence for usage tracking.`);
+  }
+
+  async update(table: string, where: Record<string, any>, data: Record<string, any>): Promise<void> {
+    console.warn(`[FilePersistence] Generic update not supported for table: ${table}. Use SQLitePersistence for usage tracking.`);
+  }
+
+  async readRecord(table: string, where: Record<string, any>): Promise<any> {
+    console.warn(`[FilePersistence] Generic readRecord not supported for table: ${table}. Use SQLitePersistence for usage tracking.`);
+    return null;
+  }
+
+  async deleteRecord(table: string, where: Record<string, any>): Promise<void> {
+    console.warn(`[FilePersistence] Generic deleteRecord not supported for table: ${table}. Use SQLitePersistence for usage tracking.`);
+  }
+
+  async usageSum(accountId: string, fromTime?: number, toTime?: number): Promise<{totalTokens: number} | null> {
+    console.warn(`[FilePersistence] Usage aggregation not supported. Use SQLitePersistence for usage tracking.`);
+    return null;
+  }
+
+  private getFilePath(accountId: string, entity: string, sessionId: string): string {
+    const entityDir = path.join(this.basePath, accountId, `.${entity}`);
     const fileName = entity === 'sessions' ? 
       `session-${sessionId}.json` : 
       `conversation-session-${sessionId}.txt`;

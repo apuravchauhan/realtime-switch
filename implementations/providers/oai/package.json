@@ -16,6 +16,7 @@
   "license": "MIT",
   "dependencies": {
     "@realtime-switch/core": "file:../../../core",
+    "@realtime-switch/checkpoint": "file:../../checkpoint",
     "dotenv": "^16.4.5",
     "uWebSockets.js": "github:uNetworking/uWebSockets.js#v20.52.0",
     "ws": "^8.18.0"

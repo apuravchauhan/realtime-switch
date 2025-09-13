@@ -1,9 +1,12 @@
 import WebSocket from 'ws';
 import { ProviderManager, Providers, ProvidersEvent, Config, ConfigKeys, PerformanceStats } from '@realtime-switch/core';
+import { BaseCheckpoint } from '@realtime-switch/checkpoint';
 
 export default class OAIEventManager extends ProviderManager {
   private oaiSocket!: WebSocket;
   private selfClosing: boolean = false;
+  private accountId: string;
+  private sessionId: string;
   private statsCallback?: (stats: PerformanceStats) => void;
   private lastPingTime: number = 0;
   
@@ -14,8 +17,10 @@ export default class OAIEventManager extends ProviderManager {
   private closeHandler: (() => void) | null = null;
   private pongHandler: ((data: Buffer) => void) | null = null;
 
-  constructor() {
+  constructor(accountId: string, sessionId: string) {
     super();
+    this.accountId = accountId;
+    this.sessionId = sessionId;
     this.connect();
   }
 
@@ -46,7 +51,29 @@ export default class OAIEventManager extends ProviderManager {
     });
     // Store handlers for later removal
     this.openHandler = () => this.init();
-    this.messageHandler = (event) => this.emitEvent({ src: Providers.OPENAI, payload: JSON.parse(event.data as string) });
+    this.messageHandler = (event) => {
+      const payload = JSON.parse(event.data as string);
+      
+      // Check for usage data in response.done events and record directly
+      if (payload.type === 'response.done' && payload.response?.usage) {
+        console.log(`[OAIEventManager] Recording usage for ${this.accountId}:`, {
+          inputTokens: payload.response.usage.input_tokens,
+          outputTokens: payload.response.usage.output_tokens,
+          totalTokens: payload.response.usage.total_tokens
+        });
+        
+        this.recordUsage(
+          'OPENAI',
+          payload.response.usage.input_tokens || 0,
+          payload.response.usage.output_tokens || 0,
+          payload.response.usage.total_tokens || 0
+        ).catch(error => {
+          console.error('[OAIEventManager] Usage recording failed:', error);
+        });
+      }
+      
+      this.emitEvent({ src: Providers.OPENAI, payload });
+    };
     this.errorHandler = (event) => this.error({ src: Providers.OPENAI, payload: event });
     this.closeHandler = () => this.handleClose();
     
@@ -84,6 +111,27 @@ export default class OAIEventManager extends ProviderManager {
   private init() {
     // Notify that provider is connected via parent's callback system
     this.triggerConnectionCallback();
+  }
+
+  // Usage recording method
+  private async recordUsage(provider: string, inputTokens: number, outputTokens: number, totalTokens: number): Promise<void> {
+    try {
+      const persistence = BaseCheckpoint.getPersistence();
+      const usageData = {
+        account_id: this.accountId,
+        session_id: this.sessionId,
+        provider: provider,
+        input_tokens: inputTokens,
+        output_tokens: outputTokens,
+        total_tokens: totalTokens,
+        audio_duration_ms: 0
+      };
+
+      persistence.insert('usage_metrics', usageData);
+    } catch (error) {
+      console.error(`[OAIEventManager] Failed to record usage:`, error);
+      throw error;
+    }
   }
 
   private error(event: ProvidersEvent) {
@@ -138,9 +186,14 @@ export default class OAIEventManager extends ProviderManager {
         this.pongHandler = null;
       }
       
-      // Close the WebSocket connection
-      if (this.oaiSocket.readyState !== WebSocket.CLOSED) {
-        this.oaiSocket.close();
+      // Close the WebSocket connection safely
+      try {
+        if (this.oaiSocket.readyState !== WebSocket.CLOSED) {
+          this.oaiSocket.close();
+        }
+      } catch (error) {
+        console.error(`[OAI] Error closing WebSocket during cleanup:`, error instanceof Error ? error.message : String(error));
+        // Don't throw - cleanup should continue
       }
       
       console.log(`[OAI] All event listeners removed and connection closed`);

@@ -116,4 +116,8 @@ export class ServerGeminiOAITransformer extends ServerEventTransformer {
       }
     });
   }
+
+  internalStats(event: ProvidersEvent): void {
+    // Empty - internal stats are not real events and should not pass through
+  }
 }

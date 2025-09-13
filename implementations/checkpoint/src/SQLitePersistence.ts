@@ -57,13 +57,14 @@ export class SQLitePersistence implements Persistence {
   /**
    * Append content to a session
    */
-  async append(entity: string, sessionId: string, content: string): Promise<void> {
+  async append(accountId: string, entity: string, sessionId: string, content: string): Promise<void> {
     try {
       const response = await this.client.sendMessage({
         type: MessageType.APPEND,
         category: entity,
         key: sessionId,
-        content
+        content,
+        data: { accountId }
       });
 
       if (!response.success) {
@@ -78,13 +79,14 @@ export class SQLitePersistence implements Persistence {
   /**
    * Overwrite content for a session
    */
-  async overwrite(entity: string, sessionId: string, content: string): Promise<void> {
+  async overwrite(accountId: string, entity: string, sessionId: string, content: string): Promise<void> {
     try {
       const response = await this.client.sendMessage({
         type: MessageType.OVERWRITE,
         category: entity,
         key: sessionId,
-        content
+        content,
+        data: { accountId }
       });
 
       if (!response.success) {
@@ -99,12 +101,13 @@ export class SQLitePersistence implements Persistence {
   /**
    * Read content from a session
    */
-  async read(entity: string, sessionId: string): Promise<string | null> {
+  async read(accountId: string, entity: string, sessionId: string): Promise<string | null> {
     try {
       const response = await this.client.sendMessage({
         type: MessageType.READ,
         category: entity,
-        key: sessionId
+        key: sessionId,
+        data: { accountId }
       });
 
       if (!response.success) {
@@ -124,12 +127,13 @@ export class SQLitePersistence implements Persistence {
   /**
    * Delete a session
    */
-  async delete(entity: string, sessionId: string): Promise<void> {
+  async delete(accountId: string, entity: string, sessionId: string): Promise<void> {
     try {
       const response = await this.client.sendMessage({
         type: MessageType.DELETE,
         category: entity,
-        key: sessionId
+        key: sessionId,
+        data: { accountId }
       });
 
       if (!response.success) {
@@ -144,12 +148,13 @@ export class SQLitePersistence implements Persistence {
   /**
    * Check if a session exists
    */
-  async exists(entity: string, sessionId: string): Promise<boolean> {
+  async exists(accountId: string, entity: string, sessionId: string): Promise<boolean> {
     try {
       const response = await this.client.sendMessage({
         type: MessageType.EXISTS,
         category: entity,
-        key: sessionId
+        key: sessionId,
+        data: { accountId }
       });
 
       if (!response.success) {
@@ -200,6 +205,108 @@ export class SQLitePersistence implements Persistence {
    */
   static resetInstance(): void {
     this.instance = null;
+  }
+
+  // Generic CRUD operations for usage tracking
+  async insert(table: string, data: Record<string, any>): Promise<void> {
+    try {
+      const response = await this.client.sendMessage({
+        type: MessageType.INSERT_USAGE,
+        table,
+        data
+      });
+
+      if (!response.success) {
+        throw new Error(response.error || 'Insert operation failed');
+      }
+    } catch (error) {
+      console.error(`[SQLitePersistence] Insert failed for table ${table}:`, error);
+      throw error;
+    }
+  }
+
+  async update(table: string, where: Record<string, any>, data: Record<string, any>): Promise<void> {
+    try {
+      const response = await this.client.sendMessage({
+        type: MessageType.UPDATE_USAGE,
+        table,
+        where,
+        data
+      });
+
+      if (!response.success) {
+        throw new Error(response.error || 'Update operation failed');
+      }
+    } catch (error) {
+      console.error(`[SQLitePersistence] Update failed for table ${table}:`, error);
+      throw error;
+    }
+  }
+
+  async readRecord(table: string, where: Record<string, any>): Promise<any> {
+    try {
+      const response = await this.client.sendMessage({
+        type: MessageType.READ_USAGE,
+        table,
+        where
+      });
+
+      if (!response.success) {
+        if (response.error?.includes('not found') || response.data === null) {
+          return null;
+        }
+        throw new Error(response.error || 'Read operation failed');
+      }
+
+      return response.data || null;
+    } catch (error) {
+      console.error(`[SQLitePersistence] ReadRecord failed for table ${table}:`, error);
+      throw error;
+    }
+  }
+
+  async deleteRecord(table: string, where: Record<string, any>): Promise<void> {
+    try {
+      const response = await this.client.sendMessage({
+        type: MessageType.DELETE,
+        table,
+        where
+      });
+
+      if (!response.success) {
+        throw new Error(response.error || 'Delete operation failed');
+      }
+    } catch (error) {
+      console.error(`[SQLitePersistence] DeleteRecord failed for table ${table}:`, error);
+      throw error;
+    }
+  }
+
+  async usageSum(accountId: string, fromTime?: number, toTime?: number): Promise<{totalTokens: number} | null> {
+    try {
+      const whereClause: Record<string, any> = { account_id: accountId };
+      
+      if (fromTime) whereClause.created_at_gte = fromTime;
+      if (toTime) whereClause.created_at_lte = toTime;
+      
+      const response = await this.client.sendMessage({
+        type: MessageType.READ_USAGE,
+        table: 'usage_metrics_sum',
+        where: whereClause
+      });
+
+      if (!response.success) {
+        if (response.error?.includes('not found') || response.data === null) {
+          return { totalTokens: 0 };
+        }
+        throw new Error(response.error || 'Usage sum operation failed');
+      }
+
+      return response.data ? { totalTokens: response.data.total_tokens_sum || 0 } : { totalTokens: 0 };
+    } catch (error) {
+      console.error(`[SQLitePersistence] UsageSum failed for account ${accountId}:`, error);
+      return null;
+    }
   }
 
 }

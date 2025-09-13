@@ -3,6 +3,7 @@ import { FilePersistence } from './FilePersistence';
 import { SQLitePersistence } from './SQLitePersistence';
 
 export abstract class BaseCheckpoint extends Checkpoint {
+  protected accountId: string;
   protected sessionId: string;
   protected extractor: ServerEventsExtractor | null;
   protected persistence: Persistence;
@@ -13,8 +14,9 @@ export abstract class BaseCheckpoint extends Checkpoint {
   private currentContentLength: number = 0; // Track total length without joining
   private readonly BUFFER_SIZE_LIMIT = 200; // Characters
 
-  constructor(sessionId: string, extractor: ServerEventsExtractor, persistence?: Persistence) {
+  constructor(accountId: string, sessionId: string, extractor: ServerEventsExtractor, persistence?: Persistence) {
     super();
+    this.accountId = accountId;
     this.sessionId = sessionId;
     this.extractor = extractor;
     this.persistence = persistence || BaseCheckpoint.getPersistence();
@@ -76,7 +78,7 @@ export abstract class BaseCheckpoint extends Checkpoint {
       const content = this.currentContentBuffer.join('');
 
       // Make persistence non-blocking - fire and forget
-      this.persistence.append('conversations', this.sessionId, content)
+      this.persistence.append(this.accountId, 'conversations', this.sessionId, content)
         .catch(error => {
           console.error('[BaseCheckpoint] Background persistence failed:', error);
         });
@@ -146,6 +148,38 @@ export abstract class BaseCheckpoint extends Checkpoint {
 
     console.log(`[BaseCheckpoint] Cleanup completed for session: ${this.sessionId}`);
   }
+
+  // Usage tracking methods
+  protected async recordUsage(provider: string, inputTokens: number, outputTokens: number, totalTokens: number): Promise<void> {
+    try {
+      const usageData = {
+        account_id: this.accountId,
+        session_id: this.sessionId,
+        provider: provider,
+        input_tokens: inputTokens,
+        output_tokens: outputTokens,
+        total_tokens: totalTokens,
+        audio_duration_ms: 0
+      };
+
+      // Simple insert - one record per turn/response
+      await this.persistence.insert('usage_metrics', usageData);
+      
+    } catch (error) {
+      console.error(`[BaseCheckpoint] Failed to record usage for ${this.accountId}/${this.sessionId}:`, error);
+    }
+  }
+
+  // Usage aggregation method
+  async getUsageSum(accountId: string, fromTime?: number, toTime?: number): Promise<{totalTokens: number} | null> {
+    try {
+      return await this.persistence.usageSum(accountId, fromTime, toTime);
+    } catch (error) {
+      console.error(`[BaseCheckpoint] Failed to get usage sum for ${accountId}:`, error);
+      return null;
+    }
+  }
+
   static getPersistence(): Persistence {
     const config = Config.getInstance();
     const persistenceType = config.get(ConfigKeys.PERSISTENCE) || 'FILE';
@@ -158,10 +192,10 @@ export abstract class BaseCheckpoint extends Checkpoint {
         return new FilePersistence({ basePath: './' });
     }
   }
-  static async loadConversationHistory(sessionId: string, persistence?: Persistence): Promise<string | null> {
+  static async loadConversationHistory(accountId: string, sessionId: string, persistence?: Persistence): Promise<string | null> {
     try {
       const persistenceLayer = persistence || BaseCheckpoint.getPersistence();
-      const content = await persistenceLayer.read('conversations', sessionId);
+      const content = await persistenceLayer.read(accountId, 'conversations', sessionId);
 
       return content ? content.trim() : null;
     } catch (error) {

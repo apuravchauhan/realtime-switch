@@ -2,8 +2,8 @@ import { ProvidersEvent, ServerEventsExtractor } from '@realtime-switch/core';
 import { BaseCheckpoint } from './BaseCheckpoint';
 
 export class GeminiCheckpoint extends BaseCheckpoint {
-  constructor(sessionId: string, extractor: ServerEventsExtractor) {
-    super(sessionId, extractor);
+  constructor(accountId: string, sessionId: string, extractor: ServerEventsExtractor) {
+    super(accountId, sessionId, extractor);
   }
 
   userTranscript(event: ProvidersEvent): void {
@@ -35,4 +35,5 @@ export class GeminiCheckpoint extends BaseCheckpoint {
   turn(event: ProvidersEvent): void {
     // Turn events not saved to conversation history
   }
+
 }

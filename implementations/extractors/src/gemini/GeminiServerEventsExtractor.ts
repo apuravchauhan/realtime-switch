@@ -6,6 +6,7 @@ export class GeminiServerEventsExtractor implements ServerEventsExtractor {
   private responseAudioCallback?: (event: ProvidersEvent) => void;
   private toolCallCallback?: (event: ProvidersEvent) => void;
   private turnCallback?: (event: ProvidersEvent) => void;
+  private internalStatsCallback?: (event: ProvidersEvent) => void;
 
   constructor() {
     // No callback initially - will be set later
@@ -31,12 +32,17 @@ export class GeminiServerEventsExtractor implements ServerEventsExtractor {
     this.turnCallback = callback;
   }
 
+  onInternalStats(callback: (event: ProvidersEvent) => void): void {
+    this.internalStatsCallback = callback;
+  }
+
   cleanup(): void {
     this.userTranscriptCallback = undefined;
     this.responseTranscriptCallback = undefined;
     this.responseAudioCallback = undefined;
     this.toolCallCallback = undefined;
     this.turnCallback = undefined;
+    this.internalStatsCallback = undefined;
   }
 
   extract(event: ProvidersEvent): void {
@@ -78,10 +84,9 @@ export class GeminiServerEventsExtractor implements ServerEventsExtractor {
         this.turnCallback?.(event);
         return;
       }
-      // Ignore turnComplete events - they're just markers after the real completion
+      // Handle turnComplete for usage data extraction - no longer needed since usage is recorded at provider level
       if (serverContent.turnComplete) {
-        console.log('GeminiServerEventsExtractor: Ignoring turnComplete marker event');
-        return;
+        return; // Ignore for turn logic
       }
     }
 

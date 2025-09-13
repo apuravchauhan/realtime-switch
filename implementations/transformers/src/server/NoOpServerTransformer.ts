@@ -28,4 +28,8 @@ export class NoOpServerTransformer extends ServerEventTransformer {
   turn(event: ProvidersEvent): void {
     this.emitEvent(event);
   }
+
+  internalStats(event: ProvidersEvent): void {
+    // Empty - internal stats are not real events and should not pass through
+  }
 }

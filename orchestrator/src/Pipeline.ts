@@ -14,16 +14,18 @@ export class Pipeline {
   private readonly apiStyle: Providers;
   private provider: Providers;
   private readonly clientSocket: EventManager;
+  private readonly accountId: string;
   private readonly sessionId: string;
 
-  constructor(apiStyle: Providers, sessionId: string, clientSocket: EventManager, provider?: Providers) {
+  constructor(apiStyle: Providers, accountId: string, sessionId: string, clientSocket: EventManager, provider?: Providers) {
     this.apiStyle = apiStyle;
     this.provider = provider || apiStyle;
+    this.accountId = accountId;
     this.sessionId = sessionId;
     this.clientSocket = clientSocket;
 
-    // ✅ Create SessionManager first
-    this.sessionManager = new SessionManager(this.apiStyle, this.sessionId);
+    // ✅ Create SessionManager first  
+    this.sessionManager = new SessionManager(this.apiStyle, this.accountId, this.sessionId);
 
     const pipeline = this.determinePipeline(apiStyle, this.provider);
     this.providerEventManager = pipeline.provider;
@@ -32,7 +34,7 @@ export class Pipeline {
 
     // Create checkpoint with extractor for the apiStyle (client format for conversation logging)
     const checkpointExtractor = ExtractorRegistry.getExtractor(this.apiStyle);
-    this.checkpoint = CheckpointRegistry.getCheckpoint(this.apiStyle, sessionId, checkpointExtractor);
+    this.checkpoint = CheckpointRegistry.getCheckpoint(this.apiStyle, this.accountId, this.sessionId, checkpointExtractor);
 
     // Initialize switching logic - always enabled for MVP
     this.initializeProviderSwitching();
@@ -45,7 +47,7 @@ export class Pipeline {
     serverTransformer: EventManager;
     clientTransformer: EventManager;
   } {
-    const providerEventManager = ProviderRegistry.getProvider(provider, this.sessionId);
+    const providerEventManager = ProviderRegistry.getProvider(provider, this.accountId, this.sessionId);
 
     // Register connection callback - no type checking needed with ProviderManager
     providerEventManager.onConnected(() => this.onProviderConnected());
