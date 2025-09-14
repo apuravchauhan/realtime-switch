@@ -24,13 +24,13 @@
   "author": "Apurav Chauhan and Indu Chauhan",
   "license": "MIT",
   "dependencies": {
-    "@realtime-switch/core": "file:../../../core",
-    "@realtime-switch/checkpoint": "file:../../checkpoint",
     "@google/genai": "^1.12.0",
+    "@realtime-switch/checkpoint": "file:../../checkpoint",
+    "@realtime-switch/core": "file:../../../core",
     "ws": "^8.18.3"
   },
   "devDependencies": {
-    "@types/node": "^20.19.9",
+    "@types/node": "^20.19.14",
     "@types/ws": "^8.18.1",
     "dotenv": "^16.4.5",
     "ts-node": "^10.9.0",

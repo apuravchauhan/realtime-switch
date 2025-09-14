@@ -1,4 +1,6 @@
-import { ProvidersEvent, ServerEventTransformer, ServerEventsExtractor, Providers } from '@realtime-switch/core';
+import { ProvidersEvent, ServerEventTransformer, ServerEventsExtractor, Providers, Logger } from '@realtime-switch/core';
+
+const CLASS_NAME = 'ServerGeminiOAITransformer';
 
 export class ServerGeminiOAITransformer extends ServerEventTransformer {
   constructor(extractor: ServerEventsExtractor) {
@@ -67,7 +69,7 @@ export class ServerGeminiOAITransformer extends ServerEventTransformer {
     // Transform each function call to OAI response.output_item.done format immediately
     // No accumulation or waiting for response.done - emit each function call right away
     for (const funcCall of functionCalls) {
-      console.log(`[ServerGeminiOAITransformer] Converting Gemini toolCall to OpenAI format: ${funcCall.name} (${funcCall.id})`);
+      Logger.debug(CLASS_NAME, null, 'Converting Gemini toolCall to OpenAI format: {} ({})', funcCall.name, funcCall.id);
       this.emitEvent({
         src: Providers.OPENAI,
         payload: {

@@ -1,5 +1,7 @@
-import { Persistence } from '@realtime-switch/core';
+import { Persistence, Logger } from '@realtime-switch/core';
 import { SecureIPCClient, MessageType } from './ipc/SecureIPCClient';
+
+const CLASS_NAME = 'SQLitePersistence';
 
 /**
  * SQLite Persistence implementation using secure native IPC
@@ -31,26 +33,26 @@ export class SQLitePersistence implements Persistence {
   static getInstance(socketPath: string = '/tmp/realtime-switch-db.sock'): SQLitePersistence {
     if (!this.instance) {
       this.instance = new SQLitePersistence(socketPath);
-      console.log('[SQLitePersistence] Singleton instance created');
+      Logger.debug(CLASS_NAME, null, 'Singleton instance created');
     }
     return this.instance;
   }
 
   private setupEventHandlers(): void {
     this.client.on('connect', () => {
-      console.log('[SQLitePersistence] Connected to database server');
+      Logger.debug(CLASS_NAME, null, 'Connected to database server');
     });
 
     this.client.on('disconnect', () => {
-      console.log('[SQLitePersistence] Disconnected from database server');
+      Logger.debug(CLASS_NAME, null, 'Disconnected from database server');
     });
 
     this.client.on('error', (error: Error) => {
-      console.error('[SQLitePersistence] Client error:', error);
+      Logger.error(CLASS_NAME, null, 'Client error', error);
     });
 
     this.client.on('maxReconnectAttemptsReached', () => {
-      console.error('[SQLitePersistence] Max reconnection attempts reached');
+      Logger.error(CLASS_NAME, null, 'Max reconnection attempts reached', new Error('Max reconnection attempts reached'));
     });
   }
 
@@ -71,7 +73,7 @@ export class SQLitePersistence implements Persistence {
         throw new Error(response.error || 'Append operation failed');
       }
     } catch (error) {
-      console.error(`[SQLitePersistence] Append failed for ${entity}:${sessionId}:`, error);
+      Logger.error(CLASS_NAME, null, 'Append failed for {}:{}', error as Error, entity, sessionId);
       throw error;
     }
   }
@@ -93,7 +95,7 @@ export class SQLitePersistence implements Persistence {
         throw new Error(response.error || 'Overwrite operation failed');
       }
     } catch (error) {
-      console.error(`[SQLitePersistence] Overwrite failed for ${entity}:${sessionId}:`, error);
+      Logger.error(CLASS_NAME, null, 'Overwrite failed for {}:{}', error as Error, entity, sessionId);
       throw error;
     }
   }
@@ -119,7 +121,7 @@ export class SQLitePersistence implements Persistence {
 
       return response.data || null;
     } catch (error) {
-      console.error(`[SQLitePersistence] Read failed for ${entity}:${sessionId}:`, error);
+      Logger.error(CLASS_NAME, null, 'Read failed for {}:{}', error as Error, entity, sessionId);
       throw error;
     }
   }
@@ -140,7 +142,7 @@ export class SQLitePersistence implements Persistence {
         throw new Error(response.error || 'Delete operation failed');
       }
     } catch (error) {
-      console.error(`[SQLitePersistence] Delete failed for ${entity}:${sessionId}:`, error);
+      Logger.error(CLASS_NAME, null, 'Delete failed for {}:{}', error as Error, entity, sessionId);
       throw error;
     }
   }
@@ -163,7 +165,7 @@ export class SQLitePersistence implements Persistence {
 
       return Boolean(response.data);
     } catch (error) {
-      console.error(`[SQLitePersistence] Exists check failed for ${entity}:${sessionId}:`, error);
+      Logger.error(CLASS_NAME, null, 'Exists check failed for {}:{}', error as Error, entity, sessionId);
       throw error;
     }
   }
@@ -181,9 +183,9 @@ export class SQLitePersistence implements Persistence {
   async cleanup(): Promise<void> {
     try {
       await this.client.disconnect();
-      console.log('[SQLitePersistence] Client disconnected cleanly');
+      Logger.debug(CLASS_NAME, null, 'Client disconnected cleanly');
     } catch (error) {
-      console.error('[SQLitePersistence] Cleanup error:', error);
+      Logger.error(CLASS_NAME, null, 'Cleanup error', error as Error);
     }
   }
 
@@ -193,7 +195,7 @@ export class SQLitePersistence implements Persistence {
    */
   static async shutdown(): Promise<void> {
     if (this.instance) {
-      console.log('[SQLitePersistence] Shutting down singleton instance');
+      Logger.debug(CLASS_NAME, null, 'Shutting down singleton instance');
       await this.instance.cleanup();
       this.instance = null;
     }
@@ -220,7 +222,7 @@ export class SQLitePersistence implements Persistence {
         throw new Error(response.error || 'Insert operation failed');
       }
     } catch (error) {
-      console.error(`[SQLitePersistence] Insert failed for table ${table}:`, error);
+      Logger.error(CLASS_NAME, null, 'Insert failed for table {}', error as Error, table);
       throw error;
     }
   }
@@ -238,7 +240,7 @@ export class SQLitePersistence implements Persistence {
         throw new Error(response.error || 'Update operation failed');
       }
     } catch (error) {
-      console.error(`[SQLitePersistence] Update failed for table ${table}:`, error);
+      Logger.error(CLASS_NAME, null, 'Update failed for table {}', error as Error, table);
       throw error;
     }
   }
@@ -260,7 +262,7 @@ export class SQLitePersistence implements Persistence {
 
       return response.data || null;
     } catch (error) {
-      console.error(`[SQLitePersistence] ReadRecord failed for table ${table}:`, error);
+      Logger.error(CLASS_NAME, null, 'ReadRecord failed for table {}', error as Error, table);
       throw error;
     }
   }
@@ -277,7 +279,7 @@ export class SQLitePersistence implements Persistence {
         throw new Error(response.error || 'Delete operation failed');
       }
     } catch (error) {
-      console.error(`[SQLitePersistence] DeleteRecord failed for table ${table}:`, error);
+      Logger.error(CLASS_NAME, null, 'DeleteRecord failed for table {}', error as Error, table);
       throw error;
     }
   }
@@ -304,7 +306,7 @@ export class SQLitePersistence implements Persistence {
 
       return response.data ? { totalTokens: response.data.total_tokens_sum || 0 } : { totalTokens: 0 };
     } catch (error) {
-      console.error(`[SQLitePersistence] UsageSum failed for account ${accountId}:`, error);
+      Logger.error(CLASS_NAME, null, 'UsageSum failed for account {}', error as Error, accountId);
       return null;
     }
   }

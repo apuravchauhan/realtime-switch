@@ -1,5 +1,8 @@
 import dotenv from 'dotenv';
 import { ConfigKeys } from './ConfigKeys';
+import { Logger } from '../Logger';
+
+const CLASS_NAME = 'Config';
 
 dotenv.config();
 
@@ -29,7 +32,7 @@ export class Config {
   get(key: ConfigKeys): string | undefined {
     const value = this.config.get(key);
     if (!value) {
-      console.error(`Required configuration key '${key}' not found`);
+      Logger.error(CLASS_NAME, null, 'Required configuration key {} not found', new Error('Config key not found'), key);
       return undefined;
     }
     return value;

@@ -1,8 +1,10 @@
 import * as fs from 'fs/promises';
 import * as fsSync from 'fs';
 import * as path from 'path';
-import { Persistence } from '@realtime-switch/core';
+import { Persistence, Logger } from '@realtime-switch/core';
 import { PersistenceConfig } from '@realtime-switch/core';
+
+const CLASS_NAME = 'FilePersistence';
 
 export class FilePersistence implements Persistence {
   private basePath: string;
@@ -16,7 +18,7 @@ export class FilePersistence implements Persistence {
     await this.ensureDirectoryExists(filePath);
     
     fs.appendFile(filePath, content, 'utf-8').catch(error => {
-      console.error(`[FilePersistence] Append failed for ${entity}/${sessionId}:`, error);
+      Logger.error(CLASS_NAME, null, 'Append failed for {}/{}', error as Error, entity, sessionId);
     });
   }
 
@@ -25,7 +27,7 @@ export class FilePersistence implements Persistence {
     await this.ensureDirectoryExists(filePath);
     
     fs.writeFile(filePath, content, 'utf-8').catch(error => {
-      console.error(`[FilePersistence] Overwrite failed for ${entity}/${sessionId}:`, error);
+      Logger.error(CLASS_NAME, null, 'Overwrite failed for {}/{}', error as Error, entity, sessionId);
     });
   }
 
@@ -47,7 +49,7 @@ export class FilePersistence implements Persistence {
     
     fs.unlink(filePath).catch(error => {
       if (error.code !== 'ENOENT') { // Ignore "file not found" errors
-        console.error(`[FilePersistence] Delete failed for ${entity}/${sessionId}:`, error);
+        Logger.error(CLASS_NAME, null, 'Delete failed for {}/{}', error as Error, entity, sessionId);
       }
     });
   }
@@ -72,24 +74,24 @@ export class FilePersistence implements Persistence {
 
   // Generic CRUD operations - Not implemented for file-based storage
   async insert(table: string, data: Record<string, any>): Promise<void> {
-    console.warn(`[FilePersistence] Generic insert not supported for table: ${table}. Use SQLitePersistence for usage tracking.`);
+    Logger.warn(CLASS_NAME, null, 'Generic insert not supported for table: {}. Use SQLitePersistence for usage tracking.', table);
   }
 
   async update(table: string, where: Record<string, any>, data: Record<string, any>): Promise<void> {
-    console.warn(`[FilePersistence] Generic update not supported for table: ${table}. Use SQLitePersistence for usage tracking.`);
+    Logger.warn(CLASS_NAME, null, 'Generic update not supported for table: {}. Use SQLitePersistence for usage tracking.', table);
   }
 
   async readRecord(table: string, where: Record<string, any>): Promise<any> {
-    console.warn(`[FilePersistence] Generic readRecord not supported for table: ${table}. Use SQLitePersistence for usage tracking.`);
+    Logger.warn(CLASS_NAME, null, 'Generic readRecord not supported for table: {}. Use SQLitePersistence for usage tracking.', table);
     return null;
   }
 
   async deleteRecord(table: string, where: Record<string, any>): Promise<void> {
-    console.warn(`[FilePersistence] Generic deleteRecord not supported for table: ${table}. Use SQLitePersistence for usage tracking.`);
+    Logger.warn(CLASS_NAME, null, 'Generic deleteRecord not supported for table: {}. Use SQLitePersistence for usage tracking.', table);
   }
 
   async usageSum(accountId: string, fromTime?: number, toTime?: number): Promise<{totalTokens: number} | null> {
-    console.warn(`[FilePersistence] Usage aggregation not supported. Use SQLitePersistence for usage tracking.`);
+    Logger.warn(CLASS_NAME, null, `Usage aggregation not supported. Use SQLitePersistence for usage tracking.`);
     return null;
   }
 

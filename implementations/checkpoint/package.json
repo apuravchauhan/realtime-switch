@@ -25,8 +25,8 @@
     "uuid": "^9.0.0"
   },
   "devDependencies": {
-    "@types/node": "^20.19.9",
     "@types/better-sqlite3": "^7.6.9",
+    "@types/node": "^20.19.14",
     "@types/uuid": "^9.0.0",
     "typescript": "^5.8.3"
   }

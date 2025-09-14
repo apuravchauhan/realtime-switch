@@ -9,13 +9,20 @@
     "dev": "tsc --watch",
     "clean": "rm -rf .dist"
   },
-  "keywords": ["ai", "transformers", "events", "providers", "voice ai"],
+  "keywords": [
+    "ai",
+    "transformers",
+    "events",
+    "providers",
+    "voice ai"
+  ],
   "author": "Apurav Chauhan and Indu Chauhan",
   "license": "MIT",
   "dependencies": {
     "@realtime-switch/core": "file:../../core"
   },
   "devDependencies": {
+    "@types/node": "^24.3.3",
     "typescript": "^5.0.0"
   }
 }

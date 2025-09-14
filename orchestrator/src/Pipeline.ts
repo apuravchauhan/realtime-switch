@@ -1,4 +1,6 @@
-import { EventManager, ProviderManager, ProvidersEvent, Providers, Checkpoint, Switch, PerformanceStats } from '@realtime-switch/core';
+import { EventManager, ProviderManager, ProvidersEvent, Providers, Checkpoint, Switch, PerformanceStats, Logger } from '@realtime-switch/core';
+
+const CLASS_NAME = 'Pipeline';
 import { PingSwitch } from '@realtime-switch/switch';
 import { ProviderRegistry, ServerTransformerRegistry, ClientTransformerRegistry, ExtractorRegistry, CheckpointRegistry } from './registries';
 import { SessionManager } from './SessionManager';
@@ -64,7 +66,7 @@ export class Pipeline {
 
     // Register switch callback to trigger provider updates
     this.switch.onSwitch((targetProvider: Providers) => {
-      console.log(`[Pipeline] Switch triggered: ${this.provider} -> ${targetProvider}`);
+      Logger.debug(CLASS_NAME, this.accountId, 'Switch triggered: {} -> {}', this.provider, targetProvider);
       this.updateProvider(targetProvider);
     });
 
@@ -91,26 +93,26 @@ export class Pipeline {
 
   // Provider connected callback method (called by individual callback function)
   private onProviderConnected(): void {
-    console.log('[Pipeline] Provider connected, replaying session configuration...');
+    Logger.debug(CLASS_NAME, this.accountId, 'Provider connected, replaying session configuration...');
 
     // ✅ Fire-and-forget session loading to avoid blocking provider connection
     this.sessionManager.getSessionConfiguration()
       .then(sessionConfig => {
         if (sessionConfig && sessionConfig.src === this.apiStyle) {
-          console.log(`[Pipeline] Replaying session config with conversation context:`, sessionConfig.payload);
+          Logger.debug(CLASS_NAME, this.accountId, 'Replaying session config with conversation context');
           // ✅ Skip SessionManager to prevent duplicate saves - replay directly to ClientTransformer
           this.clientTransformer.receiveEvent(sessionConfig);
         } else {
-          console.log('[Pipeline] No session configuration to replay');
+          Logger.debug(CLASS_NAME, this.accountId, 'No session configuration to replay');
         }
       })
       .catch(error => {
-        console.error('[Pipeline] Failed to load session config:', error);
+        Logger.error(CLASS_NAME, this.accountId, 'Failed to load session config', error as Error);
       });
   }
 
   public updateProvider(newProvider: Providers): void {
-    console.log(`Updating provider from ${this.provider} to ${newProvider}`);
+    Logger.debug(CLASS_NAME, this.accountId, 'Updating provider from {} to {}', this.provider, newProvider);
 
     // Clean up old provider components (keep SessionManager and checkpoint)
     if (this.providerEventManager) {
@@ -146,13 +148,8 @@ export class Pipeline {
 
 
   private initPipeline(): void {
-    console.log('Initializing pipeline with SessionManager...');
-    console.log(`Configuration:`, {
-      apiStyle: this.apiStyle,
-      provider: this.provider,
-      clientTransformer: this.clientTransformer,
-      serverTransformer: this.serverTransformer,
-    });
+    Logger.debug(CLASS_NAME, this.accountId, 'Initializing pipeline with SessionManager...');
+    Logger.debug(CLASS_NAME, this.accountId, 'Configuration - apiStyle: {}, provider: {}', this.apiStyle, this.provider);
 
     // ✅ Setup pipeline flow with SessionManager as first step
     // SessionManager -> ClientTransformer -> ProviderEventManager -> ServerTransformer -> [SocketEventManager, Checkpoint]

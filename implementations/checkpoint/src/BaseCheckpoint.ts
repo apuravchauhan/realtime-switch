@@ -1,4 +1,6 @@
-import { Checkpoint, ProvidersEvent, ServerEventsExtractor, Persistence, ConversationEntry, Config, ConfigKeys } from '@realtime-switch/core';
+import { Checkpoint, ProvidersEvent, ServerEventsExtractor, Persistence, ConversationEntry, Config, ConfigKeys, Logger } from '@realtime-switch/core';
+
+const CLASS_NAME = 'BaseCheckpoint';
 import { FilePersistence } from './FilePersistence';
 import { SQLitePersistence } from './SQLitePersistence';
 
@@ -64,7 +66,7 @@ export abstract class BaseCheckpoint extends Checkpoint {
     // Check if buffer exceeds limit
     if (this.currentContentLength > this.BUFFER_SIZE_LIMIT) {
       this.flushBuffer().catch(error => {
-        console.error('[BaseCheckpoint] Background flush failed:', error);
+        Logger.error(CLASS_NAME, this.accountId, 'Background flush failed', error as Error);
       });
     }
   }
@@ -80,7 +82,7 @@ export abstract class BaseCheckpoint extends Checkpoint {
       // Make persistence non-blocking - fire and forget
       this.persistence.append(this.accountId, 'conversations', this.sessionId, content)
         .catch(error => {
-          console.error('[BaseCheckpoint] Background persistence failed:', error);
+          Logger.error(CLASS_NAME, this.accountId, 'Background persistence failed', error as Error);
         });
     }
 
@@ -95,7 +97,7 @@ export abstract class BaseCheckpoint extends Checkpoint {
    */
   public flushPendingBuffer(): void {
     this.flushBuffer().catch(error => {
-      console.error('[BaseCheckpoint] Background flush failed:', error);
+      Logger.error(CLASS_NAME, this.accountId, 'Background flush failed', error as Error);
     });
   }
 
@@ -110,7 +112,7 @@ export abstract class BaseCheckpoint extends Checkpoint {
 
     // Make checkpoint save non-blocking
     this.save('agent_checkpoint', checkpointContent).catch(error => {
-      console.error('[BaseCheckpoint] Checkpoint save failed:', error);
+      Logger.error(CLASS_NAME, this.accountId, 'Checkpoint save failed', error as Error);
     });
 
     // Flush the checkpoint immediately since it's a significant event (non-blocking)
@@ -123,7 +125,7 @@ export abstract class BaseCheckpoint extends Checkpoint {
   }
 
   async cleanup(): Promise<void> {
-    console.log(`[BaseCheckpoint] Cleaning up session: ${this.sessionId}`);
+    Logger.debug(CLASS_NAME, this.accountId, 'Cleaning up session: {}', this.sessionId);
 
     // Flush any remaining buffered content before cleanup (non-blocking for final cleanup)
     this.flushPendingBuffer();
@@ -133,9 +135,9 @@ export abstract class BaseCheckpoint extends Checkpoint {
     if (this.persistence.constructor.name === 'FilePersistence') {
       try {
         await this.persistence.cleanup();
-        console.log(`[BaseCheckpoint] FilePersistence cleaned up for session: ${this.sessionId}`);
+        Logger.debug(CLASS_NAME, this.accountId, 'FilePersistence cleaned up for session: {}', this.sessionId);
       } catch (error) {
-        console.error(`[BaseCheckpoint] FilePersistence cleanup failed for session: ${this.sessionId}:`, error);
+        Logger.error(CLASS_NAME, this.accountId, 'FilePersistence cleanup failed for session: {}', error as Error, this.sessionId);
       }
     }
     // SQLitePersistence singleton is shared - don't cleanup per session
@@ -143,10 +145,10 @@ export abstract class BaseCheckpoint extends Checkpoint {
     if (this.extractor) {
       this.extractor.cleanup();
       this.extractor = null;
-      console.log(`[BaseCheckpoint] Extractor cleaned up for session: ${this.sessionId}`);
+      Logger.debug(CLASS_NAME, this.accountId, 'Extractor cleaned up for session: {}', this.sessionId);
     }
 
-    console.log(`[BaseCheckpoint] Cleanup completed for session: ${this.sessionId}`);
+    Logger.debug(CLASS_NAME, this.accountId, 'Cleanup completed for session: {}', this.sessionId);
   }
 
   // Usage tracking methods
@@ -166,7 +168,7 @@ export abstract class BaseCheckpoint extends Checkpoint {
       await this.persistence.insert('usage_metrics', usageData);
       
     } catch (error) {
-      console.error(`[BaseCheckpoint] Failed to record usage for ${this.accountId}/${this.sessionId}:`, error);
+      Logger.error(CLASS_NAME, this.accountId, 'Failed to record usage', error as Error);
     }
   }
 
@@ -175,7 +177,7 @@ export abstract class BaseCheckpoint extends Checkpoint {
     try {
       return await this.persistence.usageSum(accountId, fromTime, toTime);
     } catch (error) {
-      console.error(`[BaseCheckpoint] Failed to get usage sum for ${accountId}:`, error);
+      Logger.error(CLASS_NAME, null, 'Failed to get usage sum for {}', error as Error, accountId);
       return null;
     }
   }
@@ -199,7 +201,7 @@ export abstract class BaseCheckpoint extends Checkpoint {
 
       return content ? content.trim() : null;
     } catch (error) {
-      console.error('Error loading conversation history:', error);
+      Logger.error(CLASS_NAME, null, 'Error loading conversation history', error as Error);
       return null;
     }
   }

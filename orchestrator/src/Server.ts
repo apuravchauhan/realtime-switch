@@ -1,33 +1,34 @@
 import * as uWS from 'uWebSockets.js';
-import { Config, ConfigKeys, Providers } from '@realtime-switch/core';
+import { Config, ConfigKeys, Providers, Logger } from '@realtime-switch/core';
 import { Pipeline } from './Pipeline';
 import SocketEventManager from './SocketEventManager';
 import { AuthService } from '@realtime-switch/core';
 import { FirestoreAccountManager } from '@realtime-switch/accounts';
 import { Banner } from './Banner';
 
+// Static class name to avoid repeated string allocations
+const CLASS_NAME = 'Server';
+
 // Global Error Handlers
 process.on('uncaughtException', (error) => {
-  console.error('🚨 [Server] Uncaught Exception:', error);
-  console.error('Stack:', error.stack);
-  console.error('⚠️ [Server] Continuing after uncaught exception - consider fixing the root cause');
+  Logger.error(CLASS_NAME, null, '🚨 Uncaught Exception - consider fixing the root cause', error);
   // Don't exit - log and continue running
 });
 
 process.on('unhandledRejection', (reason, promise) => {
-  console.error('🚨 [Server] Unhandled Promise Rejection at:', promise);
-  console.error('🚨 [Server] Reason:', reason);
+  const error = reason instanceof Error ? reason : new Error(String(reason));
+  Logger.error(CLASS_NAME, null, '🚨 Unhandled Promise Rejection at: {}', error, promise);
   // Don't exit on unhandled rejections, just log them
 });
 
 process.on('SIGTERM', async () => {
-  console.log('📡 [Server] Received SIGTERM, shutting down gracefully...');
+  Logger.debug(CLASS_NAME, null, '📡 Received SIGTERM, shutting down gracefully...');
   await gracefulShutdown();
   process.exit(0);
 });
 
 process.on('SIGINT', async () => {
-  console.log('📡 [Server] Received SIGINT (Ctrl+C), shutting down gracefully...');
+  Logger.debug(CLASS_NAME, null, '📡 Received SIGINT (Ctrl+C), shutting down gracefully...');
   await gracefulShutdown();
   process.exit(0);
 });
@@ -35,18 +36,18 @@ process.on('SIGINT', async () => {
 // Graceful shutdown handler
 async function gracefulShutdown() {
   try {
-    console.log('🧹 [Server] Starting graceful shutdown...');
+    Logger.debug(CLASS_NAME, null, '🧹 Starting graceful shutdown...');
 
     // Import SQLitePersistence for singleton cleanup
     const { SQLitePersistence } = await import('@realtime-switch/checkpoint');
 
     // Shutdown singleton resources
     await SQLitePersistence.shutdown();
-    console.log('✅ [Server] SQLitePersistence singleton shut down');
+    Logger.debug(CLASS_NAME, null, '✅ SQLitePersistence singleton shut down');
 
-    console.log('✅ [Server] Graceful shutdown completed');
+    Logger.debug(CLASS_NAME, null, '✅ Graceful shutdown completed');
   } catch (error) {
-    console.error('❌ [Server] Error during graceful shutdown:', error);
+    Logger.error(CLASS_NAME, null, '❌ Error during graceful shutdown', error as Error);
   }
 }
 
@@ -91,7 +92,7 @@ const app = uWS.App()
 
       // Validate required parameters
       if (!accountId || !sessionId || !authHash) {
-        console.log(`[Auth] Missing required query parameters`);
+        Logger.warn(CLASS_NAME, accountId || null, 'Missing required query parameters');
         if (!res.aborted) {
           res.writeStatus('400 Bad Request').end('Missing authentication parameters: rs_accid, rs_u_sessid, rs_auth required');
         }
@@ -159,33 +160,35 @@ const app = uWS.App()
           const event = JSON.parse(jsonString);
           ws.getUserData().pipeline.receiveEvent(event);
         } catch (error) {
-          console.error('Error parsing JSON message:', error);
+          const userData = ws.getUserData();
+          Logger.error(CLASS_NAME, userData.accountId || null, 'Error parsing JSON message', error as Error);
         }
       }
     },
     drain: (ws) => {
-      console.log('WebSocket backpressure:', ws.getBufferedAmount());
+      const userData = ws.getUserData();
+      Logger.debug(CLASS_NAME, userData.accountId || null, 'WebSocket backpressure: {}', ws.getBufferedAmount());
     },
     close: (ws, code, message) => {
       const userData = ws.getUserData();
-      console.log(`🔌 [Server] WebSocket closed - Session: ${userData.id}, Account: ${userData.accountId}, Provider: ${userData.provider}, Code: ${code}`);
+      Logger.debug(CLASS_NAME, userData.accountId || null, '🔌 WebSocket closed - Session: {}, Provider: {}, Code: {}', userData.id, userData.provider, code);
 
       // Cleanup pipeline and all associated resources
       if (userData.pipeline) {
         try {
           userData.pipeline.cleanup();
-          console.log(`✅ [Server] Pipeline cleanup completed for session: ${userData.id}`);
+          Logger.debug(CLASS_NAME, userData.accountId || null, '✅ Pipeline cleanup completed for session: {}', userData.id);
         } catch (error) {
-          console.error(`❌ [Server] Pipeline cleanup failed for session: ${userData.id}:`, error);
+          Logger.error(CLASS_NAME, userData.accountId || null, '❌ Pipeline cleanup failed for session: {}', error as Error, userData.id);
         }
       } else {
-        console.warn(`⚠️ [Server] No pipeline found for session: ${userData.id}`);
+        Logger.warn(CLASS_NAME, userData.accountId || null, '⚠️ No pipeline found for session: {}', userData.id);
       }
 
-      // Clear userData references to prevent memory leaks  
+      // Clear userData references to prevent memory leaks
       userData.pipeline = null as any;
 
-      console.log(`🧹 [Server] Session ${userData.id} cleanup completed`);
+      Logger.debug(CLASS_NAME, userData.accountId || null, '🧹 Session {} cleanup completed', userData.id);
     }
   })
   // Fallback for unknown routes

@@ -1,4 +1,6 @@
-import { ProvidersEvent, ServerEventsExtractor } from '@realtime-switch/core';
+import { ProvidersEvent, ServerEventsExtractor, Logger } from '@realtime-switch/core';
+
+const CLASS_NAME = 'OAIServerEventsExtractor';
 
 export class OAIServerEventsExtractor implements ServerEventsExtractor {
   private userTranscriptCallback?: (event: ProvidersEvent) => void;
@@ -44,7 +46,7 @@ export class OAIServerEventsExtractor implements ServerEventsExtractor {
   extract(event: ProvidersEvent): void {
     const eventType = event.payload?.type as string;
     if (!eventType) {
-      console.warn('OAIServerEventsExtractor: Received event without type:', event);
+      Logger.warn(CLASS_NAME, null, 'Received event without type');
       return;
     }
 

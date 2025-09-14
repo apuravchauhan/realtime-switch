@@ -1,4 +1,6 @@
-import { Switch, SwitchCallback, Providers, PerformanceStats, Config, ConfigKeys } from '@realtime-switch/core';
+import { Switch, SwitchCallback, Providers, PerformanceStats, Config, ConfigKeys, Logger } from '@realtime-switch/core';
+
+const CLASS_NAME = 'PingSwitch';
 
 /**
  * PingSwitch - A latency-based switching implementation
@@ -47,7 +49,7 @@ export class PingSwitch implements Switch {
     // Add new latency measurement
     latencies.push(stats.latency);
     
-    console.log(`[PingSwitch] ${stats.provider} ping: ${stats.latency}ms (current: ${this.currentProvider})`);
+    Logger.debug(CLASS_NAME, null, '{} ping: {}ms (current: {})', stats.provider, stats.latency, this.currentProvider);
     
     // Only evaluate switching for current provider
     if (stats.provider === this.currentProvider) {
@@ -67,15 +69,15 @@ export class PingSwitch implements Switch {
     
     if (allAboveThreshold) {
       const targetProvider = this.getOtherProvider();
-      console.log(`[PingSwitch] ${this.currentProvider} exceeded ${this.LATENCY_THRESHOLD_MS}ms for ${this.CONSECUTIVE_FAILURES} consecutive times`);
-      console.log(`[PingSwitch] Last ${this.CONSECUTIVE_FAILURES} latencies:`, lastNLatencies);
+      Logger.warn(CLASS_NAME, null, '{} exceeded {}ms for {} consecutive times', this.currentProvider, this.LATENCY_THRESHOLD_MS, this.CONSECUTIVE_FAILURES);
+      Logger.debug(CLASS_NAME, null, 'Last {} latencies: {}', this.CONSECUTIVE_FAILURES, lastNLatencies.join(', '));
       
       this.performSwitch(targetProvider);
     }
   }
 
   private performSwitch(targetProvider: Providers): void {
-    console.log(`[PingSwitch] Switching from ${this.currentProvider} to ${targetProvider}`);
+    Logger.warn(CLASS_NAME, null, 'Switching from {} to {}', this.currentProvider, targetProvider);
     
     // Reset stats for the provider we're switching away from
     this.providerLatencies.set(this.currentProvider, []);

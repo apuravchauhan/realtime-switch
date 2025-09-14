@@ -1,5 +1,8 @@
 import * as net from 'net';
 import { EventEmitter } from 'events';
+import { Logger } from '@realtime-switch/core';
+
+const CLASS_NAME = 'SecureIPCClient';
 
 // IPC Message Types  
 export enum MessageType {
@@ -115,7 +118,7 @@ export class SecureIPCClient extends EventEmitter {
         this.connecting = false;
         this.reconnectAttempts = 0;
         
-        console.log('[SecureIPCClient] Connected to server');
+        Logger.debug(CLASS_NAME, null, 'Connected to server');
         this.emit('connect');
         resolve();
       });
@@ -153,28 +156,28 @@ export class SecureIPCClient extends EventEmitter {
         
         // Prevent buffer overflow
         if (this.messageBuffer.length > this.config.maxMessageSize!) {
-          console.error('[SecureIPCClient] Message buffer too large');
+          Logger.error(CLASS_NAME, null, 'Message buffer too large', new Error('Message buffer too large'));
           this.handleDisconnect();
         }
       } catch (error) {
-        console.error('[SecureIPCClient] Error processing data:', error);
+        Logger.error(CLASS_NAME, null, 'Error processing data', error as Error);
         this.emit('error', error);
       }
     });
 
     this.socket.on('error', (error) => {
-      console.error('[SecureIPCClient] Socket error:', error);
+      Logger.error(CLASS_NAME, null, 'Socket error', error as Error);
       this.emit('error', error);
       this.handleDisconnect();
     });
 
     this.socket.on('close', () => {
-      console.log('[SecureIPCClient] Connection closed');
+      Logger.debug(CLASS_NAME, null, 'Connection closed');
       this.handleDisconnect();
     });
 
     this.socket.on('end', () => {
-      console.log('[SecureIPCClient] Server ended connection');
+      Logger.debug(CLASS_NAME, null, 'Server ended connection');
       this.handleDisconnect();
     });
   }
@@ -184,7 +187,7 @@ export class SecureIPCClient extends EventEmitter {
       const response: IPCResponse = JSON.parse(messageStr);
       
       if (!this.isValidResponse(response)) {
-        console.error('[SecureIPCClient] Invalid response format:', messageStr);
+        Logger.error(CLASS_NAME, null, 'Invalid response format: {}', new Error('Invalid response format'), messageStr);
         return;
       }
 
@@ -206,7 +209,7 @@ export class SecureIPCClient extends EventEmitter {
       }
       
     } catch (error) {
-      console.error('[SecureIPCClient] Error parsing response:', error);
+      Logger.error(CLASS_NAME, null, 'Error parsing response', error as Error);
     }
   }
 
@@ -245,7 +248,7 @@ export class SecureIPCClient extends EventEmitter {
 
   private scheduleReconnect(): void {
     if (this.reconnectAttempts >= this.config.maxReconnectAttempts!) {
-      console.error('[SecureIPCClient] Max reconnection attempts reached');
+      Logger.error(CLASS_NAME, null, 'Max reconnection attempts reached', new Error('Max reconnection attempts reached'));
       this.emit('maxReconnectAttemptsReached');
       return;
     }
@@ -255,12 +258,12 @@ export class SecureIPCClient extends EventEmitter {
       30000 // Max 30 seconds
     );
 
-    console.log(`[SecureIPCClient] Reconnecting in ${delay}ms (attempt ${this.reconnectAttempts + 1})`);
+    Logger.debug(CLASS_NAME, null, 'Reconnecting in {}ms (attempt {})', delay, this.reconnectAttempts + 1);
     
     this.reconnectTimer = setTimeout(() => {
       this.reconnectAttempts++;
       this.connect().catch((error) => {
-        console.error('[SecureIPCClient] Reconnection failed:', error);
+        Logger.error(CLASS_NAME, null, 'Reconnection failed', error as Error);
       });
     }, delay);
   }

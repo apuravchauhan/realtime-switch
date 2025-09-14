@@ -32,3 +32,6 @@ export { Switch, SwitchCallback } from './switch/Switch';
 
 // Accounts
 export * from './accounts';
+
+// Logger
+export { Logger, LogLevel } from './Logger';

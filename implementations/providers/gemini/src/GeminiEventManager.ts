@@ -1,6 +1,8 @@
 import WebSocket from 'ws';
-import { ProviderManager, Providers, ProvidersEvent, Config, ConfigKeys, PerformanceStats } from '@realtime-switch/core';
+import { ProviderManager, Providers, ProvidersEvent, Config, ConfigKeys, PerformanceStats, Logger } from '@realtime-switch/core';
 import { BaseCheckpoint } from '@realtime-switch/checkpoint';
+
+const CLASS_NAME = 'GeminiEventManager';
 
 export default class GeminiEventManager extends ProviderManager {
   private geminiSocket!: WebSocket;
@@ -38,7 +40,7 @@ export default class GeminiEventManager extends ProviderManager {
       if (this.geminiSocket && this.geminiSocket.readyState === WebSocket.OPEN) {
         const pingData = Buffer.from(now.toString());
         this.geminiSocket.ping(pingData);
-        console.log(`[Gemini] Sent ping at ${now}`);
+        Logger.debug(CLASS_NAME, this.accountId, 'Sent ping at {}', now);
       }
     }
   }
@@ -55,7 +57,7 @@ export default class GeminiEventManager extends ProviderManager {
     const method = 'BidiGenerateContent';
     const url = `${websocketBaseUrl}/ws/google.ai.generativelanguage.${apiVersion}.GenerativeService.${method}?key=${apiKey}`;
     
-    console.log(`[Gemini] Connecting to: ${url}`);
+    Logger.debug(CLASS_NAME, this.accountId, 'Connecting to: {}', url);
 
     this.geminiSocket = new WebSocket(url);
     
@@ -66,12 +68,12 @@ export default class GeminiEventManager extends ProviderManager {
     this.closeHandler = (event) => this.handleClose(event as any);
     this.pongHandler = (data: Buffer) => {
       if (data.length === 0) {
-        console.log(`[Gemini] Received pong from Gemini server (empty)`);
+        Logger.debug(CLASS_NAME, this.accountId, 'Received pong from Gemini server (empty)');
       } else {
         try {
           const pingTime = parseInt(data.toString());
           const latency = Date.now() - pingTime;
-          console.log(`[Gemini] Received pong, latency: ${latency}ms`);
+          Logger.debug(CLASS_NAME, this.accountId, 'Received pong, latency: {}ms', latency);
           
           if (this.statsCallback) {
             this.statsCallback({
@@ -81,7 +83,7 @@ export default class GeminiEventManager extends ProviderManager {
             });
           }
         } catch (error) {
-          console.error(`[Gemini] Error parsing pong data:`, error);
+          Logger.error(CLASS_NAME, this.accountId, 'Error parsing pong data', error as Error);
         }
       }
     };
@@ -94,7 +96,7 @@ export default class GeminiEventManager extends ProviderManager {
   }
 
   private handleOpen(): void {
-    console.log(`[Gemini] WebSocket connected`);
+    Logger.debug(CLASS_NAME, this.accountId, 'WebSocket connected');
     
     // Notify that provider is connected via parent's callback system
     this.triggerConnectionCallback();
@@ -107,16 +109,12 @@ export default class GeminiEventManager extends ProviderManager {
 
       // Check for error messages
       if (message.error) {
-        console.error(`[Gemini] Server error:`, message.error);
+        Logger.error(CLASS_NAME, this.accountId, 'Server error', new Error(JSON.stringify(message.error)));
       }
 
       // Check for usage data and record directly
       if (message.usageMetadata) {
-        console.log(`[GeminiEventManager] Recording usage for ${this.accountId}:`, {
-          inputTokens: message.usageMetadata.promptTokenCount,
-          outputTokens: message.usageMetadata.responseTokenCount,
-          totalTokens: message.usageMetadata.totalTokenCount
-        });
+        Logger.debug(CLASS_NAME, this.accountId, 'Recording usage - tokens: {}', message.usageMetadata.totalTokenCount);
         
         this.recordUsage(
           'GEMINI',
@@ -124,7 +122,7 @@ export default class GeminiEventManager extends ProviderManager {
           message.usageMetadata.responseTokenCount || 0,
           message.usageMetadata.totalTokenCount || 0
         ).catch(error => {
-          console.error('[GeminiEventManager] Usage recording failed:', error);
+          Logger.error(CLASS_NAME, this.accountId, 'Usage recording failed', error as Error);
         });
       }
 
@@ -134,8 +132,7 @@ export default class GeminiEventManager extends ProviderManager {
         payload: message 
       });
     } catch (error) {
-      console.error(`[Gemini] Error parsing message:`, error);
-      console.error(`[Gemini] Raw message:`, event.data);
+      Logger.error(CLASS_NAME, this.accountId, 'Error parsing message', error as Error);
     }
   }
 
@@ -155,13 +152,13 @@ export default class GeminiEventManager extends ProviderManager {
 
       persistence.insert('usage_metrics', usageData);
     } catch (error) {
-      console.error(`[GeminiEventManager] Failed to record usage:`, error);
+      Logger.error(CLASS_NAME, this.accountId, 'Failed to record usage', error as Error);
       throw error;
     }
   }
 
   private handleError(event: Event): void {
-    console.error(`[Gemini] WebSocket error:`, event);
+    Logger.error(CLASS_NAME, this.accountId, 'WebSocket error', new Error(JSON.stringify(event)));
     this.emitEvent({ 
       src: Providers.GEMINI, 
       payload: { 
@@ -173,9 +170,9 @@ export default class GeminiEventManager extends ProviderManager {
 
   private handleClose(event?: any): void {
     if (event) {
-      console.log(`[Gemini] WebSocket closed with code: ${event.code}, reason: ${event.reason || 'No reason'}`);
+      Logger.debug(CLASS_NAME, this.accountId, 'WebSocket closed with code: {}, reason: {}', event.code, event.reason || 'No reason');
     } else {
-      console.log(`[Gemini] WebSocket closed`);
+      Logger.debug(CLASS_NAME, this.accountId, 'WebSocket closed');
     }
     
     if (this.selfClosing) {
@@ -184,7 +181,7 @@ export default class GeminiEventManager extends ProviderManager {
       this.cleanup();
     } else {
       // Network-initiated close, attempt immediate reconnection
-      console.log('[Gemini] Connection closed unexpectedly, reconnecting immediately...');
+      Logger.warn(CLASS_NAME, this.accountId, 'Connection closed unexpectedly, reconnecting immediately...');
       this.connect();
     }
   }
@@ -199,7 +196,7 @@ export default class GeminiEventManager extends ProviderManager {
   }
 
   cleanup(): void {
-    console.log(`[Gemini] Starting cleanup - removing event listeners and closing connection`);
+    Logger.debug(CLASS_NAME, this.accountId, 'Starting cleanup - removing event listeners and closing connection');
     super.cleanup();
     this.selfClosing = true;
     
@@ -232,11 +229,11 @@ export default class GeminiEventManager extends ProviderManager {
           this.geminiSocket.close();
         }
       } catch (error) {
-        console.error(`[Gemini] Error closing WebSocket during cleanup:`, error instanceof Error ? error.message : String(error));
+        Logger.error(CLASS_NAME, this.accountId, 'Error closing WebSocket during cleanup', error instanceof Error ? error : new Error(String(error)));
         // Don't throw - cleanup should continue
       }
       
-      console.log(`[Gemini] All event listeners removed and connection closed`);
+      Logger.debug(CLASS_NAME, this.accountId, 'All event listeners removed and connection closed');
     }
     
     // Clear callback references

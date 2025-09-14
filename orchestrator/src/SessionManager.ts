@@ -1,4 +1,6 @@
-import { EventManager, ProvidersEvent, Providers, ClientEventsExtractor, Persistence } from '@realtime-switch/core';
+import { EventManager, ProvidersEvent, Providers, ClientEventsExtractor, Persistence, Logger } from '@realtime-switch/core';
+
+const CLASS_NAME = 'SessionManager';
 import { BaseCheckpoint } from '@realtime-switch/checkpoint';
 import { FilePersistence } from '@realtime-switch/checkpoint';
 import { ExtractorRegistry } from './registries';
@@ -45,7 +47,7 @@ export class SessionManager extends EventManager {
   private handleSessionUpdate(event: ProvidersEvent): void {
     // ✅ Merge session configuration (now async but don't block event flow)
     this.mergeSessionConfiguration(event).catch(error => {
-      console.error('[SessionManager] Failed to merge session configuration:', error);
+      Logger.error(CLASS_NAME, this.accountId, 'Failed to merge session configuration', error as Error);
     });
 
     // Event continues to flow to subscribers normally
@@ -55,7 +57,7 @@ export class SessionManager extends EventManager {
     if (!this.sessionConfiguration) {
       // First session update - store as is
       this.sessionConfiguration = { ...event };
-      console.log(`[SessionManager] Initial session config captured for ${event.src}:`, event.payload);
+      Logger.debug(CLASS_NAME, this.accountId, 'Initial session config captured for {}', event.src);
     } else {
       // Merge session configurations
       const existingSession = this.sessionConfiguration.payload.session || {};
@@ -71,16 +73,12 @@ export class SessionManager extends EventManager {
         }
       };
 
-      console.log(`[SessionManager] Merged session config for ${event.src}:`, {
-        previous: existingSession,
-        new: newSession,
-        merged: mergedSession
-      });
+      Logger.debug(CLASS_NAME, this.accountId, 'Merged session config for {}', event.src);
     }
 
     // ✅ Persist session configuration (non-blocking)
     this.saveSessionConfiguration().catch(error => {
-      console.error('[SessionManager] Failed to save session configuration:', error);
+      Logger.error(CLASS_NAME, this.accountId, 'Failed to save session configuration', error as Error);
     });
   }
 
@@ -89,7 +87,7 @@ export class SessionManager extends EventManager {
     if (this.sessionConfiguration) {
       const content = JSON.stringify(this.sessionConfiguration, null, 2);
       await this.sessionPersistence.overwrite(this.accountId, 'sessions', this.sessionId, content);
-      console.log(`[SessionManager] Session configuration saved for ${this.sessionId}`);
+      Logger.debug(CLASS_NAME, this.accountId, 'Session configuration saved for {}', this.sessionId);
     }
   }
 
@@ -100,10 +98,10 @@ export class SessionManager extends EventManager {
 
       if (content) {
         this.sessionConfiguration = JSON.parse(content);
-        console.log(`[SessionManager] Session configuration loaded for ${this.sessionId}:`, this.sessionConfiguration?.payload);
+        Logger.debug(CLASS_NAME, this.accountId, 'Session configuration loaded for {}', this.sessionId);
       }
     } catch (error) {
-      console.error(`[SessionManager] Failed to load session configuration:`, error);
+      Logger.error(CLASS_NAME, this.accountId, 'Failed to load session configuration', error as Error);
     }
   }
 

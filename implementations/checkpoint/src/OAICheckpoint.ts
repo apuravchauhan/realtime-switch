@@ -1,5 +1,7 @@
-import { ProvidersEvent, ServerEventsExtractor } from '@realtime-switch/core';
+import { ProvidersEvent, ServerEventsExtractor, Logger } from '@realtime-switch/core';
 import { BaseCheckpoint } from './BaseCheckpoint';
+
+const CLASS_NAME = 'OAICheckpoint';
 
 export class OAICheckpoint extends BaseCheckpoint {
   constructor(accountId: string, sessionId: string, extractor: ServerEventsExtractor) {
@@ -8,15 +10,15 @@ export class OAICheckpoint extends BaseCheckpoint {
 
   userTranscript(event: ProvidersEvent): void {
     const eventType = event.payload?.type;
-    console.log(`[OAICheckpoint] userTranscript called with:`, { eventType, delta: event.payload?.delta });
+    Logger.debug(CLASS_NAME, this.accountId, 'userTranscript called with eventType: {}', eventType);
 
     if (eventType === 'conversation.item.input_audio_transcription.delta') {
       const transcript = event.payload?.delta;
       if (transcript) {
-        console.log(`[OAICheckpoint] Saving user transcript: ${transcript}`);
+        Logger.debug(CLASS_NAME, this.accountId, 'Saving user transcript');
         this.save('user', transcript, event.src);
       } else {
-        console.log('[OAICheckpoint] No delta found in user transcript event');
+        Logger.debug(CLASS_NAME, this.accountId, 'No delta found in user transcript event');
       }
     }
   }

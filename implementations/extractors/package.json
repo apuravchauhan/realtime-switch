@@ -22,7 +22,7 @@
     "@realtime-switch/core": "file:../../core"
   },
   "devDependencies": {
-    "@types/node": "^20.19.9",
+    "@types/node": "^20.19.14",
     "typescript": "^5.8.3"
   }
 }

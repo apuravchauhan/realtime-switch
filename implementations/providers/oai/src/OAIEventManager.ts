@@ -1,6 +1,8 @@
 import WebSocket from 'ws';
-import { ProviderManager, Providers, ProvidersEvent, Config, ConfigKeys, PerformanceStats } from '@realtime-switch/core';
+import { ProviderManager, Providers, ProvidersEvent, Config, ConfigKeys, PerformanceStats, Logger } from '@realtime-switch/core';
 import { BaseCheckpoint } from '@realtime-switch/checkpoint';
+
+const CLASS_NAME = 'OAIEventManager';
 
 export default class OAIEventManager extends ProviderManager {
   private oaiSocket!: WebSocket;
@@ -36,7 +38,7 @@ export default class OAIEventManager extends ProviderManager {
       if (this.oaiSocket && this.oaiSocket.readyState === WebSocket.OPEN) {
         const pingData = Buffer.from(now.toString());
         this.oaiSocket.ping(pingData);
-        console.log(`[OAI] Sent ping at ${now}`);
+        Logger.debug(CLASS_NAME, this.accountId, 'Sent ping at {}', now);
       }
     }
   }
@@ -56,11 +58,7 @@ export default class OAIEventManager extends ProviderManager {
       
       // Check for usage data in response.done events and record directly
       if (payload.type === 'response.done' && payload.response?.usage) {
-        console.log(`[OAIEventManager] Recording usage for ${this.accountId}:`, {
-          inputTokens: payload.response.usage.input_tokens,
-          outputTokens: payload.response.usage.output_tokens,
-          totalTokens: payload.response.usage.total_tokens
-        });
+        Logger.debug(CLASS_NAME, this.accountId, 'Recording usage - tokens: {}', payload.response.usage.total_tokens);
         
         this.recordUsage(
           'OPENAI',
@@ -68,7 +66,7 @@ export default class OAIEventManager extends ProviderManager {
           payload.response.usage.output_tokens || 0,
           payload.response.usage.total_tokens || 0
         ).catch(error => {
-          console.error('[OAIEventManager] Usage recording failed:', error);
+          Logger.error(CLASS_NAME, this.accountId, 'Usage recording failed', error as Error);
         });
       }
       
@@ -85,12 +83,12 @@ export default class OAIEventManager extends ProviderManager {
     // Handle pong responses with latency calculation
     this.pongHandler = (data: Buffer) => {
       if (data.length === 0) {
-        console.log(`[OAI] Received pong from OpenAI server (empty)`);
+        Logger.debug(CLASS_NAME, this.accountId, 'Received pong from OpenAI server (empty)');
       } else {
         try {
           const pingTime = parseInt(data.toString());
           const latency = Date.now() - pingTime;
-          console.log(`[OAI] Received pong, latency: ${latency}ms`);
+          Logger.debug(CLASS_NAME, this.accountId, 'Received pong, latency: {}ms', latency);
           
           if (this.statsCallback) {
             this.statsCallback({
@@ -100,7 +98,7 @@ export default class OAIEventManager extends ProviderManager {
             });
           }
         } catch (error) {
-          console.error(`[OAI] Error parsing pong data:`, error);
+          Logger.error(CLASS_NAME, this.accountId, 'Error parsing pong data', error as Error);
         }
       }
     };
@@ -129,7 +127,7 @@ export default class OAIEventManager extends ProviderManager {
 
       persistence.insert('usage_metrics', usageData);
     } catch (error) {
-      console.error(`[OAIEventManager] Failed to record usage:`, error);
+      Logger.error(CLASS_NAME, this.accountId, 'Failed to record usage', error as Error);
       throw error;
     }
   }
@@ -153,13 +151,13 @@ export default class OAIEventManager extends ProviderManager {
       this.cleanup();
     } else {
       // Network-initiated close, attempt immediate reconnection
-      console.log('OAI WebSocket closed unexpectedly, reconnecting immediately...');
+      Logger.warn(CLASS_NAME, this.accountId, 'WebSocket closed unexpectedly, reconnecting immediately...');
       this.connect();
     }
   }
 
   cleanup() {
-    console.log(`[OAI] Starting cleanup - removing event listeners and closing connection`);
+    Logger.debug(CLASS_NAME, this.accountId, 'Starting cleanup - removing event listeners and closing connection');
     super.cleanup();
     this.selfClosing = true;
     
@@ -192,11 +190,11 @@ export default class OAIEventManager extends ProviderManager {
           this.oaiSocket.close();
         }
       } catch (error) {
-        console.error(`[OAI] Error closing WebSocket during cleanup:`, error instanceof Error ? error.message : String(error));
+        Logger.error(CLASS_NAME, this.accountId, 'Error closing WebSocket during cleanup', error instanceof Error ? error : new Error(String(error)));
         // Don't throw - cleanup should continue
       }
       
-      console.log(`[OAI] All event listeners removed and connection closed`);
+      Logger.debug(CLASS_NAME, this.accountId, 'All event listeners removed and connection closed');
     }
     
     // Clear callback references

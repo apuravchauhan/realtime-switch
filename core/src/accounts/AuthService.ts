@@ -3,6 +3,9 @@ import { Config } from '../config/Config';
 import { ConfigKeys } from '../config/ConfigKeys';
 import { AccountManager } from './AccountManager';
 import { AuthStatus } from './AuthStatus';
+import { Logger } from '../Logger';
+
+const CLASS_NAME = 'AuthService';
 
 /**
  * Authentication service that handles HMAC-based WebSocket authentication
@@ -57,7 +60,7 @@ export class AuthService {
         const account = await this.accountManager.getAccount(accountId);
         return account ? account.key : null;
       } catch (error) {
-        console.error(`[Auth] Error fetching account from database: ${error}`);
+        Logger.error(CLASS_NAME, accountId, 'Error fetching account from database', error as Error);
         return null;
       }
     }
@@ -86,7 +89,7 @@ export class AuthService {
       // Get account secret key
       const accountKey = await this.getAccountKey(accountId);
       if (!accountKey) {
-        console.log(`[Auth] Invalid account ID: ${accountId}`);
+        Logger.warn(CLASS_NAME, accountId, 'Invalid account ID: {}', accountId);
         return { status: false, error: 'Invalid account ID' };
       }
 
@@ -100,14 +103,14 @@ export class AuthService {
       );
 
       if (!isValid) {
-        console.log(`[Auth] Authentication failed for account: ${accountId}, session: ${sessionId}`);
+        Logger.warn(CLASS_NAME, accountId, 'Authentication failed for session: {}', sessionId);
         return { status: false, error: 'Authentication failed' };
       }
 
       return { status: true };
 
     } catch (error) {
-      console.error(`[Auth] Error during authentication: ${error}`);
+      Logger.error(CLASS_NAME, accountId, 'Error during authentication', error as Error);
       return { status: false, error: 'Authentication error' };
     }
   }

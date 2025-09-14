@@ -1498,7 +1498,7 @@
                     console.log('🔐 Using auth for session:', SESSION_ID);
                     
                     // Connect with query parameters
-                    const wsUrl = `wss://ws.realtimeswitch.com?rs_accid=${ACCOUNT_ID}&rs_u_sessid=${SESSION_ID}&rs_auth=${AUTH_HASH}&rs_api=${currentApiStyle}&rs_core=${currentProviderBackend}`;
+                    const wsUrl = `ws://localhost:${serverPort}?rs_accid=${ACCOUNT_ID}&rs_u_sessid=${SESSION_ID}&rs_auth=${AUTH_HASH}&rs_api=${currentApiStyle}&rs_core=${currentProviderBackend}`;
                     console.log('Connecting to WebSocket:', wsUrl);
                     
                     ws = new WebSocket(wsUrl);

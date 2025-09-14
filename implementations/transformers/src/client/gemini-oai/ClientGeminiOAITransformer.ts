@@ -1,5 +1,7 @@
-import { ClientEventTransformer, ClientEventsExtractor, ProvidersEvent, Providers } from '@realtime-switch/core';
+import { ClientEventTransformer, ClientEventsExtractor, ProvidersEvent, Providers, Logger } from '@realtime-switch/core';
 import { transformGeminiToolsToOAI } from '../utils/ToolTransformUtils';
+
+const CLASS_NAME = 'ClientGeminiOAITransformer';
 
 export class ClientGeminiOAITransformer extends ClientEventTransformer {
   constructor(extractor: ClientEventsExtractor) {
@@ -23,7 +25,7 @@ export class ClientGeminiOAITransformer extends ClientEventTransformer {
       // Legacy/direct audio format
       audioData = event.payload.audio.data;
     } else {
-      console.error('[ClientGeminiOAITransformer] Unknown Gemini audio format:', event.payload);
+      Logger.error(CLASS_NAME, null, 'Unknown Gemini audio format', new Error('Unknown Gemini audio format'));
       return;
     }
 

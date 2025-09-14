@@ -1,4 +1,6 @@
-import { ProvidersEvent, ServerEventsExtractor } from '@realtime-switch/core';
+import { ProvidersEvent, ServerEventsExtractor, Logger } from '@realtime-switch/core';
+
+const CLASS_NAME = 'GeminiServerEventsExtractor';
 
 export class GeminiServerEventsExtractor implements ServerEventsExtractor {
   private userTranscriptCallback?: (event: ProvidersEvent) => void;
@@ -49,13 +51,13 @@ export class GeminiServerEventsExtractor implements ServerEventsExtractor {
     const serverContent = event.payload?.serverContent;
     
     if (!event.payload) {
-      console.warn('GeminiServerEventsExtractor: Received event without payload:', event);
+      Logger.warn(CLASS_NAME, null, 'Received event without payload');
       return;
     }
 
     // Check for setupComplete
     if (event.payload.setupComplete) {
-      console.log('GeminiServerEventsExtractor: Setup complete');
+      Logger.debug(CLASS_NAME, null, 'Setup complete');
       return;
     }
 
@@ -97,7 +99,7 @@ export class GeminiServerEventsExtractor implements ServerEventsExtractor {
     }
 
 
-    console.log('GeminiServerEventsExtractor: Unhandled event structure:', JSON.stringify(event.payload, null, 2));
+    Logger.debug(CLASS_NAME, null, 'Unhandled event structure');
   }
 
 }

@@ -9,14 +9,20 @@
     "dev": "tsc --watch",
     "clean": "rm -rf .dist"
   },
-  "keywords": ["ai", "conversation", "events", "providers", "voice ai"],
+  "keywords": [
+    "ai",
+    "conversation",
+    "events",
+    "providers",
+    "voice ai"
+  ],
   "author": "Apurav Chauhan and Indu Chauhan",
   "license": "MIT",
   "dependencies": {
     "dotenv": "^16.4.5"
   },
   "devDependencies": {
-    "@types/node": "^20.0.0",
+    "@types/node": "^20.19.14",
     "typescript": "^5.8.3"
   }
 }

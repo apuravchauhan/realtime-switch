@@ -1,4 +1,6 @@
-import { ProvidersEvent, ServerEventTransformer, ServerEventsExtractor, Providers } from '@realtime-switch/core';
+import { ProvidersEvent, ServerEventTransformer, ServerEventsExtractor, Providers, Logger } from '@realtime-switch/core';
+
+const CLASS_NAME = 'ServerOAIGeminiTransformer';
 
 export class ServerOAIGeminiTransformer extends ServerEventTransformer {
   private userConvId: string | null = null;
@@ -95,7 +97,7 @@ export class ServerOAIGeminiTransformer extends ServerEventTransformer {
         // Transform immediately to Gemini format - no accumulation needed
         try {
           const args = item.arguments ? JSON.parse(item.arguments) : {};
-          console.log(`[ServerOAIGeminiTransformer] Converting OpenAI function call to Gemini format: ${item.name} (${item.call_id})`);
+          Logger.debug(CLASS_NAME, null, 'Converting OpenAI function call to Gemini format: {} ({})', item.name, item.call_id);
           
           this.emitEvent({
             src: Providers.GEMINI,
@@ -110,7 +112,7 @@ export class ServerOAIGeminiTransformer extends ServerEventTransformer {
             }
           });
         } catch (error) {
-          console.error('[ServerOAIGeminiTransformer] Failed to parse function call arguments:', error);
+          Logger.error(CLASS_NAME, null, 'Failed to parse function call arguments', error as Error);
         }
       }
     }
